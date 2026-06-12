@@ -43,10 +43,8 @@ const Cloud = {
     if (!this._initialized || !this._auth) throw new Error('Firebase not initialized');
     var provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    var result = await this._auth.signInWithPopup(provider);
-    this._user = result.user;
-    console.log('✅ Logged in as:', this._user.displayName);
-    return this._user;
+    // Use redirect (works on mobile, no popup blocking)
+    await this._auth.signInWithRedirect(provider);
   },
 
   getCurrentUser() {
@@ -70,6 +68,17 @@ const Cloud = {
   waitForAuth() {
     if (!this._auth) return Promise.resolve(null);
     return new Promise(function(resolve) {
+      // First check redirect result
+      Cloud._auth.getRedirectResult().then(function(result) {
+        if (result && result.user) {
+          Cloud._user = result.user;
+          resolve(result.user);
+        }
+      }).catch(function(e) {
+        console.warn('Redirect result error:', e);
+      });
+
+      // Also listen for auth state changes
       var unsubscribe = Cloud._auth.onAuthStateChanged(function(user) {
         unsubscribe();
         Cloud._user = user;
