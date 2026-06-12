@@ -23,6 +23,13 @@ const App = {
       console.error('❌ IndexedDB failed:', e);
     }
 
+    // Initialize Firebase
+    try {
+      Cloud.init();
+    } catch (e) {
+      console.warn('Cloud init failed:', e);
+    }
+
     // Force restore settings from IndexedDB/cookies
     try {
       await DB.restoreSettings();
@@ -168,37 +175,88 @@ const App = {
   },
 
   // ========== ONBOARDING ==========
-  completeOnboarding() {
+  async completeOnboarding() {
     try {
-      const name = (document.getElementById('onboard-name').value || '').trim();
-      const weight = parseFloat(document.getElementById('onboard-weight').value) || 0;
-      const height = parseFloat(document.getElementById('onboard-height').value) || 0;
-      const birth = document.getElementById('onboard-birth').value || '';
+      var name = (document.getElementById('onboard-name').value || '').trim();
+      var weight = parseFloat(document.getElementById('onboard-weight').value) || 0;
+      var height = parseFloat(document.getElementById('onboard-height').value) || 0;
+      var birth = document.getElementById('onboard-birth').value || '';
 
-      // Validate name (required)
       if (!name) {
         UI.showToast('Por favor, informe seu nome');
         document.getElementById('onboard-name').focus();
         return;
       }
 
-      // Save user data
-      try {
-        DB.setSetting('name', name);
-        DB.setSetting('onboarded', true);
-        if (weight > 0) DB.setSetting('weight', weight);
-        if (height > 0) DB.setSetting('height', height);
-        if (birth) DB.setSetting('birthDate', birth);
-      } catch (storageErr) {
-        console.warn('localStorage failed, continuing anyway:', storageErr);
-      }
+      // Generate recovery code
+      var code = Cloud.generateCode(name);
 
-      // Navigate to dashboard
-      this.navigateTo('home');
-      UI.showToast('Bem-vindo, ' + name + '! 🎉');
+      // Save locally
+      DB.setSetting('name', name);
+      DB.setSetting('onboarded', true);
+      DB.setSetting('recoveryCode', code);
+      if (weight > 0) DB.setSetting('weight', weight);
+      if (height > 0) DB.setSetting('height', height);
+      if (birth) DB.setSetting('birthDate', birth);
+
+      // Save to cloud
+      var profileData = { name: name, weight: weight, height: height, birthDate: birth, weeklyGoal: 10 };
+      await Cloud.saveProfile(code, profileData);
+
+      // Show recovery code to user
+      document.getElementById('recovery-code-show').textContent = code;
+      document.getElementById('recovery-display').style.display = 'flex';
+      document.getElementById('onboarding-step-1').style.display = 'none';
+
     } catch (e) {
       console.error('Onboarding error:', e);
-      alert('Erro: ' + e.message);
+      UI.showToast('Erro ao criar conta. Tente novamente.');
+    }
+  },
+
+  dismissRecovery() {
+    document.getElementById('recovery-display').style.display = 'none';
+    this.navigateTo('home');
+    var name = DB.getSetting('name', 'Corredor');
+    UI.showToast('Bem-vindo, ' + name + '! 🎉');
+  },
+
+  showRecovery() {
+    document.getElementById('recovery-modal').style.display = 'flex';
+    document.getElementById('onboarding-step-1').style.display = 'none';
+    setTimeout(function() {
+      document.getElementById('recovery-code-input').focus();
+    }, 300);
+  },
+
+  hideRecovery() {
+    document.getElementById('recovery-modal').style.display = 'none';
+    document.getElementById('onboarding-step-1').style.display = 'block';
+    document.getElementById('recovery-error').style.display = 'none';
+  },
+
+  async recoverAccount() {
+    var code = (document.getElementById('recovery-code-input').value || '').trim().toUpperCase();
+    var errorEl = document.getElementById('recovery-error');
+
+    if (!code || code.length < 4) {
+      errorEl.textContent = 'Digite um código válido (ex: LUCA-1234)';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    errorEl.style.display = 'none';
+    UI.showToast('Buscando dados...');
+
+    var success = await Cloud.syncFromCloud(code);
+    if (success) {
+      document.getElementById('recovery-modal').style.display = 'none';
+      this.navigateTo('home');
+      var name = DB.getSetting('name', 'Corredor');
+      UI.showToast('Bem-vindo de volta, ' + name + '! 🎉');
+    } else {
+      errorEl.textContent = '❌ Código não encontrado. Verifique e tente novamente.';
+      errorEl.style.display = 'block';
     }
   },
 

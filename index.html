@@ -26,6 +26,10 @@
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/onboarding.css">
+
+  <!-- Firebase SDK (compat for script tags) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
 <body>
   <div id="app">
@@ -75,7 +79,46 @@
               🚀 Começar a correr!
             </button>
 
-            <p class="onboarding-privacy">Seus dados ficam salvos apenas neste dispositivo.</p>
+            <div class="onboarding-divider">
+              <span>ou</span>
+            </div>
+
+            <button type="button" class="btn-secondary btn-lg" id="btn-recovery" onclick="App.showRecovery()">
+              🔑 Já tenho conta
+            </button>
+
+            <p class="onboarding-privacy">☁️ Seus dados são salvos na nuvem com segurança.</p>
+          </div>
+        </div>
+        <!-- Recovery Code Modal -->
+        <div class="recovery-modal" id="recovery-modal" style="display:none">
+          <div class="recovery-content">
+            <h2>🔑 Recuperar conta</h2>
+            <p class="text-muted">Digite seu código de recuperação</p>
+            <div class="input-group">
+              <input type="text" id="recovery-code-input" class="input-field recovery-input" placeholder="NOME-0000" autocapitalize="characters" maxlength="9">
+            </div>
+            <button type="button" class="btn-primary btn-lg" onclick="App.recoverAccount()">
+              ✅ Recuperar
+            </button>
+            <button type="button" class="btn-secondary btn-lg" onclick="App.hideRecovery()">
+              ← Voltar
+            </button>
+            <p class="recovery-error" id="recovery-error" style="display:none"></p>
+          </div>
+        </div>
+
+        <!-- Recovery Code Display (after first signup) -->
+        <div class="recovery-modal" id="recovery-display" style="display:none">
+          <div class="recovery-content">
+            <div class="recovery-success-icon">🎉</div>
+            <h2>Conta criada!</h2>
+            <p class="text-muted">Seu código de recuperação é:</p>
+            <div class="recovery-code-display" id="recovery-code-show"></div>
+            <p class="recovery-warning">⚠️ Salve este código! Use para recuperar seus dados caso perca acesso.</p>
+            <button type="button" class="btn-primary btn-lg" onclick="App.dismissRecovery()">
+              ✅ Salvei! Vamos correr!
+            </button>
           </div>
         </div>
       </div>
@@ -204,6 +247,7 @@
   <script src="js/stats.js"></script>
   <script src="js/timer.js"></script>
   <script src="js/db.js"></script>
+  <script src="js/cloud.js"></script>
   <script src="js/gps.js"></script>
   <script src="js/map.js"></script>
   <script src="js/ui.js"></script>

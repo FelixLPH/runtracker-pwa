@@ -598,6 +598,14 @@ const UI = {
         📤 Exportar dados (JSON)
       </button>
 
+      <div class="profile-section glass-card">
+        <h3 class="card-title">🔑 Código de recuperação</h3>
+        <div style="text-align:center; padding: var(--space-md) 0;">
+          <div style="font-size:1.4rem; font-weight:800; color:var(--accent); letter-spacing:2px; background:var(--bg-secondary); padding:var(--space-md); border-radius:var(--radius-sm); border:1px dashed var(--accent);">${DB.getSetting('recoveryCode', '---')}</div>
+          <p class="text-muted" style="margin-top:var(--space-sm); font-size:0.75rem;">Use este código para recuperar seus dados em qualquer dispositivo</p>
+        </div>
+      </div>
+
       <div class="profile-divider"></div>
 
       <button class="btn-logout" onclick="UI.logout()">
@@ -667,6 +675,18 @@ const UI = {
     if (height && height > 0) DB.setSetting('height', height);
     if (birthDate) DB.setSetting('birthDate', birthDate);
     DB.setSetting('weeklyGoal', goal);
+
+    // Sync to cloud
+    var code = DB.getSetting('recoveryCode', null);
+    if (code) {
+      Cloud.saveProfile(code, {
+        name: name || DB.getSetting('name', ''),
+        weight: weight || DB.getSetting('weight', 0),
+        height: height || DB.getSetting('height', 0),
+        birthDate: birthDate || DB.getSetting('birthDate', ''),
+        weeklyGoal: goal
+      });
+    }
 
     this.showToast('Perfil salvo com sucesso! ✅');
   },
