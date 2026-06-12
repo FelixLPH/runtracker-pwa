@@ -213,6 +213,35 @@ input[type="date"].input-field::-webkit-calendar-picker-indicator {
   border-radius: var(--radius-sm);
 }
 
+/* === PASSWORD TOGGLE === */
+.input-password-wrap {
+  position: relative;
+}
+
+.input-password-wrap .input-field {
+  padding-right: 48px;
+}
+
+.btn-eye {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+}
+
+.btn-eye:hover {
+  color: var(--accent);
+}
+
 /* === EMAIL BUTTON === */
 .btn-email {
   display: flex;
