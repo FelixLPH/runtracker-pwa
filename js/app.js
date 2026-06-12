@@ -23,10 +23,9 @@ const App = {
       console.error('❌ IndexedDB failed:', e);
     }
 
-    // Force restore settings from IndexedDB (in case localStorage was cleared)
+    // Force restore settings from IndexedDB/cookies
     try {
       await DB.restoreSettings();
-      console.log('✅ Settings restored, onboarded:', DB.getSetting('onboarded', false));
     } catch (e) {
       console.warn('Settings restore failed:', e);
     }
@@ -39,18 +38,60 @@ const App = {
       console.error('❌ Setup failed:', e);
     }
 
-    // Always run onboarding check, even if something above failed
+    // Storage diagnostic - shows what survived
+    var diag = await this._storageDiag();
+    console.log('🔍 STORAGE DIAG:', diag);
+
+    // Always run onboarding check
     try {
       var hasOnboarded = DB.getSetting('onboarded', false);
       if (hasOnboarded) {
         this.navigateTo('home');
       } else {
         this.navigateTo('onboarding');
+        // Show diagnostic on onboarding page
+        this._showDiagBanner(diag);
       }
     } catch (e) {
       console.error('❌ Navigation failed:', e);
       this.navigateTo('onboarding');
     }
+  },
+
+  async _storageDiag() {
+    var result = { ls: '❌', idb: '❌', cookie: '❌', cache: '❌' };
+    // localStorage
+    try {
+      var lsVal = localStorage.getItem('runtracker_onboarded');
+      if (lsVal !== null) result.ls = '✅';
+    } catch(e) {}
+    // IndexedDB settings
+    try {
+      if (DB._db) {
+        var val = await DB._getSettingIDB('onboarded');
+        if (val !== undefined) result.idb = '✅';
+      }
+    } catch(e) {}
+    // Cookie
+    try {
+      var cv = DB._getCookie('onboarded');
+      if (cv !== undefined) result.cookie = '✅';
+    } catch(e) {}
+    // Cache API
+    try {
+      var cache = await caches.open('runtracker-settings');
+      var resp = await cache.match('settings.json');
+      if (resp) result.cache = '✅';
+    } catch(e) {}
+    return result;
+  },
+
+  _showDiagBanner(diag) {
+    var el = document.createElement('div');
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#1a1a1a;border-bottom:1px solid #333;font-size:11px;color:#aaa;z-index:9999;font-family:monospace;';
+    el.innerHTML = '🔍 Storage: LS=' + diag.ls + ' IDB=' + diag.idb + ' Cookie=' + diag.cookie + ' Cache=' + diag.cache;
+    document.body.appendChild(el);
+    setTimeout(function(){ el.style.display='none'; }, 15000);
   },
 
   // ========== NAVIGATION ==========

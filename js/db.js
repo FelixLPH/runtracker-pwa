@@ -113,6 +113,21 @@ const DB = {
     } catch (e) { /* ignore */ }
   },
 
+  _getSettingIDB(key) {
+    if (!this._db) return Promise.resolve(undefined);
+    return new Promise(function(resolve) {
+      try {
+        var tx = DB._db.transaction(DB.SETTINGS_STORE, 'readonly');
+        var store = tx.objectStore(DB.SETTINGS_STORE);
+        var req = store.get(key);
+        req.onsuccess = function() {
+          resolve(req.result ? req.result.value : undefined);
+        };
+        req.onerror = function() { resolve(undefined); };
+      } catch (e) { resolve(undefined); }
+    });
+  },
+
   async restoreSettings() {
     // 1. Try restore from IndexedDB first
     var restoredFromIDB = false;
