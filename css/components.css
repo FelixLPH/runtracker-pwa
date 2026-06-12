@@ -625,3 +625,95 @@
 .leaflet-control-zoom a:last-child {
   border-radius: 0 0 var(--radius-sm) var(--radius-sm) !important;
 }
+
+/* === INSTALL BANNER === */
+.install-banner {
+  position: fixed;
+  bottom: calc(var(--nav-height) + var(--safe-bottom) + 8px);
+  left: var(--space-md);
+  right: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  z-index: 1100;
+  box-shadow: var(--shadow-lg);
+  animation: slide-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.install-banner-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.install-banner-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.install-banner-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.install-banner-text strong {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.install-banner-text span {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.install-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.install-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease;
+}
+
+.install-btn:active {
+  transform: scale(0.95);
+}
+
+.install-dismiss {
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}

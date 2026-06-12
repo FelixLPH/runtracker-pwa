@@ -181,6 +181,21 @@
     </nav>
   </div>
 
+  <!-- PWA Install Banner -->
+  <div class="install-banner" id="install-banner" style="display:none">
+    <div class="install-banner-content">
+      <div class="install-banner-icon">📲</div>
+      <div class="install-banner-text">
+        <strong>Instalar RunTracker</strong>
+        <span>Acesse rápido como um app real</span>
+      </div>
+    </div>
+    <div class="install-banner-actions">
+      <button class="install-btn" id="install-btn">Instalar</button>
+      <button class="install-dismiss" id="install-dismiss">✕</button>
+    </div>
+  </div>
+
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -193,5 +208,49 @@
   <script src="js/map.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/app.js"></script>
+
+  <!-- PWA Install Prompt -->
+  <script>
+    (function() {
+      var deferredPrompt = null;
+      var banner = document.getElementById('install-banner');
+      var btnInstall = document.getElementById('install-btn');
+      var btnDismiss = document.getElementById('install-dismiss');
+
+      // Check if already dismissed or installed
+      var dismissed = false;
+      try { dismissed = localStorage.getItem('runtracker_install_dismissed') === '1'; } catch(e) {}
+      var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+      if (isStandalone || dismissed) return;
+
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        deferredPrompt = e;
+        banner.style.display = 'flex';
+      });
+
+      btnInstall.addEventListener('click', function() {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function(result) {
+          if (result.outcome === 'accepted') {
+            banner.style.display = 'none';
+          }
+          deferredPrompt = null;
+        });
+      });
+
+      btnDismiss.addEventListener('click', function() {
+        banner.style.display = 'none';
+        try { localStorage.setItem('runtracker_install_dismissed', '1'); } catch(e) {}
+      });
+
+      window.addEventListener('appinstalled', function() {
+        banner.style.display = 'none';
+        deferredPrompt = null;
+      });
+    })();
+  </script>
 </body>
 </html>
