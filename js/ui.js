@@ -628,6 +628,7 @@ const UI = {
         </div>
       </div>
 
+      ${(Cloud._cachedProfile && Cloud._cachedProfile.socialEnabled) ? this._renderSocialEditForm(Cloud._cachedProfile) : ''}
       <div class="profile-divider"></div>
 
       <button class="btn-logout" onclick="UI.logout()">
@@ -726,7 +727,160 @@ const UI = {
     } else {
       this.showToast('Social desativado');
     }
+    // Re-render profile to show/hide edit form
+    this.renderProfile();
   },
+
+  _socialPhotoSlot: 0,
+
+  _renderSocialEditForm(p) {
+    var genderOptions = ['Masculino', 'Feminino', 'Prefiro não informar'];
+    var prefOptions = ['Homens', 'Mulheres', 'Tanto faz'];
+    var goalOptions = ['Relacionamento sério', 'Casual', 'Nada sério, vamos ver', 'Algo sério, deixa rolar', 'Amizades', 'Parceiro de treino'];
+    var smokingOptions = ['Não fumo', 'Fumo', 'Tentando parar', 'Fumo quando bebo', 'Não curto fumante'];
+    var allInterests = ['🏖️ Praia', '🌿 Campo', '🏠 Ficar em casa', '🏋️ Treinar', '✈️ Viajar', '🎵 Música', '📚 Ler', '🎮 Games', '🍳 Cozinhar', '🐾 Pets', '🎬 Filmes', '☕ Café'];
+    
+    var myInterests = p.interests || [];
+    var photos = p.photos || [];
+
+    var makeOptions = function(options, selected, groupId) {
+      return '<div class="option-group" id="' + groupId + '">' + options.map(function(opt) {
+        return '<div class="option-item' + (opt === selected ? ' selected' : '') + '" onclick="UI.selectSocialOption(\'' + groupId + '\', this)">' + opt + '</div>';
+      }).join('') + '</div>';
+    };
+
+    var photoSlots = '';
+    for (var i = 0; i < 5; i++) {
+      if (photos[i]) {
+        photoSlots += '<div class="photo-slot has-photo' + (i === 0 ? ' main-photo' : '') + '" onclick="UI.pickSocialPhoto(' + i + ')">' +
+          '<img src="' + photos[i] + '">' +
+          '<button class="photo-slot-remove" onclick="event.stopPropagation(); UI.removeSocialPhoto(' + i + ')">✕</button></div>';
+      } else {
+        photoSlots += '<div class="photo-slot" onclick="UI.pickSocialPhoto(' + i + ')">' +
+          '<div class="photo-slot-add"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Adicionar</span></div></div>';
+      }
+    }
+
+    var interestPills = allInterests.map(function(int) {
+      var sel = myInterests.indexOf(int) >= 0 ? ' selected' : '';
+      return '<div class="interest-pill' + sel + '" onclick="this.classList.toggle(\'selected\')">' + int + '</div>';
+    }).join('');
+
+    return '<div class="profile-section glass-card" id="social-edit-section">' +
+      '<h3 class="card-title">✏️ Editar perfil social</h3>' +
+      
+      '<label class="input-label">Sexo</label>' +
+      makeOptions(genderOptions, p.gender, 'edit-gender') +
+      
+      '<label class="input-label">Quero ver</label>' +
+      makeOptions(prefOptions, p.preference, 'edit-preference') +
+      
+      '<label class="input-label">O que busca</label>' +
+      makeOptions(goalOptions, p.relationshipGoal, 'edit-goal') +
+      
+      '<label class="input-label">Fotos (até 5)</label>' +
+      '<div class="photo-grid" id="social-photo-grid">' + photoSlots + '</div>' +
+      '<input type="file" id="social-photo-input" accept="image/*" style="display:none" onchange="UI.handleSocialPhoto(event)">' +
+      
+      '<div class="input-group"><label for="edit-bio">Bio</label>' +
+      '<textarea id="edit-bio" class="input-field" placeholder="Conte sobre você..." maxlength="300" rows="3" style="resize:none">' + (p.bio || '') + '</textarea></div>' +
+      
+      '<label class="input-label">O que curte?</label>' +
+      '<div class="interests-grid" id="edit-interests">' + interestPills + '</div>' +
+      
+      '<label class="input-label">Sobre fumar</label>' +
+      makeOptions(smokingOptions, p.smoking, 'edit-smoking') +
+      
+      '<div class="input-row"><div class="input-group"><label for="edit-city">Cidade</label>' +
+      '<input type="text" id="edit-city" class="input-field" value="' + (p.city || '') + '" placeholder="São Paulo"></div>' +
+      '<div class="input-group"><label for="edit-state">Estado</label>' +
+      '<input type="text" id="edit-state" class="input-field" value="' + (p.state || '') + '" placeholder="SP" maxlength="2"></div></div>' +
+      
+      '<label class="input-label">Privacidade — o que mostrar</label>' +
+      '<div style="display:flex; flex-direction:column; gap:var(--space-sm); margin:var(--space-sm) 0 var(--space-lg);">' +
+        '<label style="display:flex; align-items:center; justify-content:space-between; font-size:0.85rem;"><span>Mostrar peso</span><label class="toggle-switch"><input type="checkbox" id="edit-showWeight" ' + (p.showWeight !== false ? 'checked' : '') + '><span class="toggle-slider"></span></label></label>' +
+        '<label style="display:flex; align-items:center; justify-content:space-between; font-size:0.85rem;"><span>Mostrar altura</span><label class="toggle-switch"><input type="checkbox" id="edit-showHeight" ' + (p.showHeight !== false ? 'checked' : '') + '><span class="toggle-slider"></span></label></label>' +
+        '<label style="display:flex; align-items:center; justify-content:space-between; font-size:0.85rem;"><span>Mostrar localização</span><label class="toggle-switch"><input type="checkbox" id="edit-showLocation" ' + (p.showLocation !== false ? 'checked' : '') + '><span class="toggle-slider"></span></label></label>' +
+      '</div>' +
+      
+      '<button class="btn-primary" onclick="UI.saveSocialProfile()">💾 Salvar perfil social</button>' +
+    '</div>';
+  },
+
+  selectSocialOption(groupId, el) {
+    var group = document.getElementById(groupId);
+    group.querySelectorAll('.option-item').forEach(function(item) { item.classList.remove('selected'); });
+    el.classList.add('selected');
+  },
+
+  pickSocialPhoto(index) {
+    this._socialPhotoSlot = index;
+    document.getElementById('social-photo-input').click();
+  },
+
+  async handleSocialPhoto(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    var index = this._socialPhotoSlot;
+    this.showToast('Processando foto...');
+    try {
+      var base64 = await Social.compressAndUploadPhoto(file);
+      var profile = Cloud._cachedProfile || {};
+      if (!profile.photos) profile.photos = [];
+      profile.photos[index] = base64;
+      await Cloud.saveProfile(profile);
+      this.showToast('Foto salva! 📸');
+      this.renderProfile();
+    } catch(e) {
+      this.showToast('Erro ao processar foto');
+    }
+    event.target.value = '';
+  },
+
+  async removeSocialPhoto(index) {
+    var profile = Cloud._cachedProfile || {};
+    if (profile.photos) {
+      profile.photos.splice(index, 1);
+      await Cloud.saveProfile(profile);
+      this.showToast('Foto removida');
+      this.renderProfile();
+    }
+  },
+
+  async saveSocialProfile() {
+    var profile = Cloud._cachedProfile || {};
+    
+    // Collect selected options
+    var getSelected = function(groupId) {
+      var el = document.querySelector('#' + groupId + ' .option-item.selected');
+      return el ? el.textContent.trim() : '';
+    };
+    
+    profile.gender = getSelected('edit-gender') || profile.gender;
+    profile.preference = getSelected('edit-preference') || profile.preference;
+    profile.relationshipGoal = getSelected('edit-goal') || profile.relationshipGoal;
+    profile.smoking = getSelected('edit-smoking') || profile.smoking;
+    
+    profile.bio = (document.getElementById('edit-bio').value || '').trim();
+    profile.city = (document.getElementById('edit-city').value || '').trim();
+    profile.state = (document.getElementById('edit-state').value || '').trim().toUpperCase();
+    
+    // Collect interests
+    var interests = [];
+    document.querySelectorAll('#edit-interests .interest-pill.selected').forEach(function(el) {
+      interests.push(el.textContent.trim());
+    });
+    profile.interests = interests;
+    
+    // Privacy toggles
+    profile.showWeight = document.getElementById('edit-showWeight').checked;
+    profile.showHeight = document.getElementById('edit-showHeight').checked;
+    profile.showLocation = document.getElementById('edit-showLocation').checked;
+    
+    await Cloud.saveProfile(profile);
+    this.showToast('Perfil social salvo! 💜');
+  },
+
 
   async exportData() {
     const activities = await DB.getAllActivities();
