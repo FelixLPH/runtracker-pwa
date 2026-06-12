@@ -51,18 +51,60 @@
         </div>
 
         <div class="onboarding-form">
-          <!-- Step 1: Google Login -->
+          <!-- Step 1: Login options -->
           <div class="onboarding-step" id="onboarding-step-login">
             <h2>Vamos começar! 🏃</h2>
-            <p class="text-muted">Entre com sua conta Google para salvar seus dados na nuvem.</p>
+            <p class="text-muted">Entre para salvar seus dados na nuvem.</p>
 
             <button type="button" class="btn-google" id="btn-google-login" onclick="App.loginWithGoogle()">
               <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
               Entrar com Google
             </button>
 
+            <div class="onboarding-divider">
+              <span>ou</span>
+            </div>
+
+            <button type="button" class="btn-email" onclick="App.showEmailForm('signup')">
+              📧 Criar conta com email
+            </button>
+
+            <p class="auth-switch" onclick="App.showEmailForm('login')">Já tem conta? <span class="accent">Entrar</span></p>
+
             <p class="onboarding-privacy">☁️ Seus dados são salvos na nuvem com segurança.</p>
             <p class="login-error" id="login-error" style="display:none"></p>
+          </div>
+
+          <!-- Step 1b: Email form -->
+          <div class="onboarding-step" id="onboarding-step-email" style="display:none">
+            <h2 id="email-form-title">Criar conta 📧</h2>
+            <p class="text-muted" id="email-form-subtitle">Preencha para criar sua conta</p>
+
+            <div class="input-group">
+              <label for="auth-email">Email</label>
+              <input type="email" id="auth-email" class="input-field" placeholder="seu@email.com" autocomplete="email">
+            </div>
+            <div class="input-group">
+              <label for="auth-password">Senha (mín. 6 caracteres)</label>
+              <input type="password" id="auth-password" class="input-field" placeholder="••••••" minlength="6" autocomplete="current-password">
+            </div>
+
+            <button type="button" class="btn-primary btn-lg" id="btn-email-submit" onclick="App.submitEmail()">
+              🚀 Criar conta
+            </button>
+
+            <p class="auth-switch" id="email-toggle">
+              Já tem conta? <span class="accent" onclick="App.toggleEmailMode()">Entrar</span>
+            </p>
+            <p class="auth-forgot" id="auth-forgot" style="display:none">
+              <span class="accent" onclick="App.resetPassword()">Esqueci minha senha</span>
+            </p>
+
+            <button type="button" class="btn-back-link" onclick="App.hideEmailForm()">
+              ← Voltar
+            </button>
+
+            <p class="login-error" id="email-error" style="display:none"></p>
           </div>
 
           <!-- Step 2: Profile completion (for new users) -->

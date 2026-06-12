@@ -47,6 +47,25 @@ const Cloud = {
     await this._auth.signInWithRedirect(provider);
   },
 
+  async signupWithEmail(email, password) {
+    if (!this._initialized || !this._auth) throw new Error('Firebase not initialized');
+    var result = await this._auth.createUserWithEmailAndPassword(email, password);
+    this._user = result.user;
+    return this._user;
+  },
+
+  async loginWithEmail(email, password) {
+    if (!this._initialized || !this._auth) throw new Error('Firebase not initialized');
+    var result = await this._auth.signInWithEmailAndPassword(email, password);
+    this._user = result.user;
+    return this._user;
+  },
+
+  async resetPassword(email) {
+    if (!this._initialized || !this._auth) throw new Error('Firebase not initialized');
+    await this._auth.sendPasswordResetEmail(email);
+  },
+
   getCurrentUser() {
     if (!this._auth) return null;
     return this._auth.currentUser;

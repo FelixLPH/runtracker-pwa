@@ -162,6 +162,101 @@ const App = {
     }
   },
 
+  // ========== EMAIL AUTH ==========
+  _emailMode: 'signup', // 'signup' or 'login'
+
+  showEmailForm(mode) {
+    this._emailMode = mode || 'signup';
+    document.getElementById('onboarding-step-login').style.display = 'none';
+    document.getElementById('onboarding-step-email').style.display = 'block';
+    document.getElementById('email-error').style.display = 'none';
+    this._updateEmailFormUI();
+    setTimeout(function() { document.getElementById('auth-email').focus(); }, 300);
+  },
+
+  hideEmailForm() {
+    document.getElementById('onboarding-step-email').style.display = 'none';
+    document.getElementById('onboarding-step-login').style.display = 'block';
+  },
+
+  toggleEmailMode() {
+    this._emailMode = this._emailMode === 'signup' ? 'login' : 'signup';
+    this._updateEmailFormUI();
+  },
+
+  _updateEmailFormUI() {
+    var isLogin = this._emailMode === 'login';
+    document.getElementById('email-form-title').textContent = isLogin ? 'Entrar 👋' : 'Criar conta 📧';
+    document.getElementById('email-form-subtitle').textContent = isLogin ? 'Use seu email e senha' : 'Preencha para criar sua conta';
+    document.getElementById('btn-email-submit').innerHTML = isLogin ? '🔓 Entrar' : '🚀 Criar conta';
+    document.getElementById('email-toggle').innerHTML = isLogin
+      ? 'Não tem conta? <span class="accent" onclick="App.toggleEmailMode()">Criar conta</span>'
+      : 'Já tem conta? <span class="accent" onclick="App.toggleEmailMode()">Entrar</span>';
+    document.getElementById('auth-forgot').style.display = isLogin ? 'block' : 'none';
+  },
+
+  async submitEmail() {
+    var email = (document.getElementById('auth-email').value || '').trim();
+    var password = document.getElementById('auth-password').value || '';
+    var errorEl = document.getElementById('email-error');
+    errorEl.style.display = 'none';
+
+    if (!email) { errorEl.textContent = 'Informe seu email'; errorEl.style.display = 'block'; return; }
+    if (password.length < 6) { errorEl.textContent = 'A senha precisa ter pelo menos 6 caracteres'; errorEl.style.display = 'block'; return; }
+
+    var btn = document.getElementById('btn-email-submit');
+    btn.disabled = true;
+    btn.textContent = 'Aguarde...';
+
+    try {
+      var user;
+      if (this._emailMode === 'signup') {
+        user = await Cloud.signupWithEmail(email, password);
+      } else {
+        user = await Cloud.loginWithEmail(email, password);
+      }
+      // Handle post-login (same as Google redirect)
+      await this._handlePostLogin(user);
+    } catch (e) {
+      btn.disabled = false;
+      this._updateEmailFormUI();
+      var msg = 'Erro ao fazer login.';
+      if (e.code === 'auth/email-already-in-use') msg = 'Este email já está cadastrado. Tente entrar.';
+      else if (e.code === 'auth/invalid-email') msg = 'Email inválido.';
+      else if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') msg = 'Senha incorreta.';
+      else if (e.code === 'auth/user-not-found') msg = 'Conta não encontrada. Crie uma nova.';
+      else if (e.code === 'auth/weak-password') msg = 'Senha muito fraca. Use pelo menos 6 caracteres.';
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    }
+  },
+
+  async resetPassword() {
+    var email = (document.getElementById('auth-email').value || '').trim();
+    if (!email) { UI.showToast('Digite seu email primeiro'); return; }
+    try {
+      await Cloud.resetPassword(email);
+      UI.showToast('Email de recuperação enviado! 📧');
+    } catch (e) {
+      UI.showToast('Erro ao enviar email.');
+    }
+  },
+
+  async _handlePostLogin(user) {
+    var profile = await Cloud.loadProfile();
+    if (profile && profile.name) {
+      await Cloud.syncFromCloud();
+      this.navigateTo('home');
+      UI.showToast('Bem-vindo, ' + profile.name + '! 🎉');
+    } else {
+      document.getElementById('onboarding-step-login').style.display = 'none';
+      document.getElementById('onboarding-step-email').style.display = 'none';
+      document.getElementById('onboarding-step-profile').style.display = 'block';
+      var nameInput = document.getElementById('onboard-name');
+      if (user.displayName) nameInput.value = user.displayName;
+    }
+  },
+
   // ========== ONBOARDING (profile completion) ==========
   async completeOnboarding() {
     try {
