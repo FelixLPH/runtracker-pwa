@@ -261,10 +261,13 @@ const App = {
       UI.showToast('Bem-vindo, ' + profile.name + '! 🎉');
     } else {
       document.getElementById('onboarding-step-login').style.display = 'none';
-      document.getElementById('onboarding-step-email').style.display = 'none';
       document.getElementById('onboarding-step-profile').style.display = 'block';
       var nameInput = document.getElementById('onboard-name');
       if (user.displayName) nameInput.value = user.displayName;
+      if (user.email) {
+        // Pre-fill name from email if no display name
+        if (!user.displayName) nameInput.value = user.email.split('@')[0];
+      }
     }
   },
 

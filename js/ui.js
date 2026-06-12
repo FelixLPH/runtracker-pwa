@@ -716,13 +716,11 @@ const UI = {
   async logout() {
     await Cloud.logout();
     DB.setSetting('onboarded', false);
-    // Reset all auth screen visibility
     var loginStep = document.getElementById('onboarding-step-login');
     var profileStep = document.getElementById('onboarding-step-profile');
-    var emailStep = document.getElementById('onboarding-step-email');
     if (loginStep) loginStep.style.display = 'block';
     if (profileStep) profileStep.style.display = 'none';
-    if (emailStep) emailStep.style.display = 'none';
+    App._emailMode = 'signup';
     App.navigateTo('onboarding');
     this.showToast('Você saiu da conta');
   },
