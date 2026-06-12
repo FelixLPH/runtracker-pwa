@@ -23,6 +23,14 @@ const App = {
       console.error('❌ IndexedDB failed:', e);
     }
 
+    // Force restore settings from IndexedDB (in case localStorage was cleared)
+    try {
+      await DB.restoreSettings();
+      console.log('✅ Settings restored, onboarded:', DB.getSetting('onboarded', false));
+    } catch (e) {
+      console.warn('Settings restore failed:', e);
+    }
+
     try {
       this.setupNavigation();
       this.setupRecording();
@@ -33,7 +41,7 @@ const App = {
 
     // Always run onboarding check, even if something above failed
     try {
-      const hasOnboarded = DB.getSetting('onboarded', false);
+      var hasOnboarded = DB.getSetting('onboarded', false);
       if (hasOnboarded) {
         this.navigateTo('home');
       } else {
@@ -41,7 +49,6 @@ const App = {
       }
     } catch (e) {
       console.error('❌ Navigation failed:', e);
-      // Fallback: show onboarding
       this.navigateTo('onboarding');
     }
   },

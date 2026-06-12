@@ -86,13 +86,12 @@ const DB = {
       return new Promise(function(resolve) {
         req.onsuccess = function() {
           var items = req.result || [];
+          console.log('📦 Restoring ' + items.length + ' settings from IndexedDB');
           for (var i = 0; i < items.length; i++) {
             var item = items[i];
-            // Restore to localStorage if missing
+            // ALWAYS restore to localStorage (browser may have cleared it)
             try {
-              if (localStorage.getItem('runtracker_' + item.key) === null) {
-                localStorage.setItem('runtracker_' + item.key, item.value);
-              }
+              localStorage.setItem('runtracker_' + item.key, item.value);
             } catch (e) { /* blocked */ }
             // Restore to memory cache
             try {
