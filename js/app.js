@@ -119,6 +119,12 @@ const App = {
       case 'history':
         UI.renderHistory();
         break;
+      case 'discover':
+        this.initDiscoverPage();
+        break;
+      case 'matches':
+        this.initMatchesPage();
+        break;
       case 'profile':
         UI.renderProfile();
         break;
@@ -126,9 +132,136 @@ const App = {
         UI.renderActivity(data);
         break;
       case 'onboarding':
-        // Already rendered in HTML
         break;
     }
+  },
+
+  // ========== DISCOVER ==========
+  async initDiscoverPage() {
+    var cardArea = document.getElementById('discover-card-area');
+    cardArea.innerHTML = '<div class="discover-empty"><div class="discover-empty-icon">🔍</div><p>Carregando perfis...</p></div>';
+    document.getElementById('discover-actions').style.display = 'none';
+
+    await Social.loadDiscoveryQueue();
+    this._renderDiscoverCard();
+  },
+
+  _renderDiscoverCard() {
+    var profile = Social.getCurrentProfile();
+    var cardArea = document.getElementById('discover-card-area');
+    var actions = document.getElementById('discover-actions');
+
+    if (!profile) {
+      cardArea.innerHTML = '<div class="discover-empty"><div class="discover-empty-icon">🏃</div><p>Nenhum perfil novo por agora.<br>Volte mais tarde!</p></div>';
+      actions.style.display = 'none';
+      return;
+    }
+
+    var p = profile.profile;
+    var age = Social.calcAge(p.birthDate);
+    var ageStr = age ? ', ' + age : '';
+    var location = (p.showLocation !== false && p.city) ? '<div class="profile-card-location">📍 ' + p.city + (p.state ? ', ' + p.state : '') + '</div>' : '';
+    var bio = p.bio ? '<div class="profile-card-bio">' + p.bio + '</div>' : '';
+    var goalTag = p.relationshipGoal ? '<div class="profile-card-goal">' + p.relationshipGoal + '</div>' : '';
+    
+    var interests = '';
+    if (p.interests && p.interests.length > 0) {
+      interests = '<div class="profile-card-tags">' + p.interests.map(function(i) { return '<span class="profile-card-tag">' + i + '</span>'; }).join('') + '</div>';
+    }
+
+    var photo = (p.photos && p.photos.length > 0) 
+      ? '<img class="profile-card-photo" src="' + p.photos[0] + '" alt="' + p.name + '">'
+      : '<div class="profile-card-photo-placeholder">🏃</div>';
+
+    cardArea.innerHTML = '<div class="profile-card" id="current-profile-card">' +
+      photo +
+      '<div class="profile-card-info">' +
+        '<div class="profile-card-name">' + p.name + '<span class="profile-card-age">' + ageStr + '</span></div>' +
+        location + bio + goalTag + interests +
+      '</div></div>';
+    
+    actions.style.display = 'flex';
+  },
+
+  async likeProfile() {
+    var profile = Social.getCurrentProfile();
+    if (!profile) return;
+
+    var card = document.getElementById('current-profile-card');
+    if (card) card.classList.add('swiping-right');
+
+    var isMatch = await Social.likeUser(profile.uid);
+    
+    if (isMatch) {
+      this._showMatchPopup(profile);
+    }
+    
+    setTimeout(function() { App._renderDiscoverCard(); }, 300);
+  },
+
+  async dislikeProfile() {
+    var profile = Social.getCurrentProfile();
+    if (!profile) return;
+
+    var card = document.getElementById('current-profile-card');
+    if (card) card.classList.add('swiping-left');
+
+    await Social.dislikeUser(profile.uid);
+    setTimeout(function() { App._renderDiscoverCard(); }, 300);
+  },
+
+  _showMatchPopup(matchedProfile) {
+    var overlay = document.getElementById('match-overlay');
+    var photosDiv = document.getElementById('match-photos');
+    var msgEl = document.getElementById('match-message');
+    
+    var myProfile = Cloud._cachedProfile || {};
+    var theirProfile = matchedProfile.profile;
+    
+    var myPhoto = (myProfile.photos && myProfile.photos[0]) 
+      ? '<img class="match-photo" src="' + myProfile.photos[0] + '">'
+      : '<div class="match-photo-placeholder">🏃</div>';
+    var theirPhoto = (theirProfile.photos && theirProfile.photos[0])
+      ? '<img class="match-photo" src="' + theirProfile.photos[0] + '">'
+      : '<div class="match-photo-placeholder">🏃</div>';
+    
+    photosDiv.innerHTML = myPhoto + theirPhoto;
+    msgEl.textContent = 'Você e ' + theirProfile.name + ' se curtiram!';
+    overlay.classList.add('active');
+  },
+
+  closeMatch() {
+    document.getElementById('match-overlay').classList.remove('active');
+  },
+
+  // ========== MATCHES PAGE ==========
+  async initMatchesPage() {
+    var listEl = document.getElementById('matches-list');
+    listEl.innerHTML = '<div class="discover-empty"><div class="discover-empty-icon">⏳</div><p>Carregando...</p></div>';
+    
+    var matches = await Social.getMatches();
+    
+    if (matches.length === 0) {
+      listEl.innerHTML = '<div class="discover-empty"><div class="discover-empty-icon">💜</div><p>Seus matches aparecerão aqui.<br>Continue descobrindo!</p></div>';
+      return;
+    }
+    
+    var html = '';
+    for (var i = 0; i < matches.length; i++) {
+      var m = matches[i];
+      var p = m.profile;
+      var photo = (p.photos && p.photos[0])
+        ? '<img class="match-card-photo" src="' + p.photos[0] + '">'
+        : '<div class="match-card-photo-placeholder">🏃</div>';
+      var date = new Date(m.timestamp).toLocaleDateString('pt-BR');
+      var goal = p.relationshipGoal ? '<div class="match-card-goal">' + p.relationshipGoal + '</div>' : '';
+      
+      html += '<div class="match-card">' + photo +
+        '<div class="match-card-info"><div class="match-card-name">' + p.name + '</div>' +
+        '<div class="match-card-date">Match em ' + date + '</div>' + goal +
+        '</div></div>';
+    }
+    listEl.innerHTML = html;
   },
 
   // ========== SPORT SELECTION ==========
@@ -272,32 +405,135 @@ const App = {
   },
 
   // ========== ONBOARDING (profile completion) ==========
+  _onboardData: {},
+  _onboardPhotos: [],
+  _currentPhotoSlot: 0,
+
+  // Step transitions
+  goToSocialStep1() {
+    var name = (document.getElementById('onboard-name').value || '').trim();
+    if (!name) { UI.showToast('Informe seu nome'); return; }
+    
+    this._onboardData.name = name;
+    this._onboardData.weight = parseFloat(document.getElementById('onboard-weight').value) || 0;
+    this._onboardData.height = parseFloat(document.getElementById('onboard-height').value) || 0;
+    this._onboardData.birthDate = document.getElementById('onboard-birth').value || '';
+    
+    document.getElementById('onboarding-step-profile').style.display = 'none';
+    document.getElementById('onboarding-step-social1').style.display = 'block';
+  },
+
+  goToSocialStep2() {
+    if (!this._onboardData.gender) { UI.showToast('Selecione seu sexo'); return; }
+    if (!this._onboardData.preference) { UI.showToast('Selecione quem quer ver'); return; }
+    if (!this._onboardData.relationshipGoal) { UI.showToast('Selecione o que busca'); return; }
+    
+    document.getElementById('onboarding-step-social1').style.display = 'none';
+    document.getElementById('onboarding-step-photos').style.display = 'block';
+  },
+
+  goToSocialStep3() {
+    document.getElementById('onboarding-step-photos').style.display = 'none';
+    document.getElementById('onboarding-step-social3').style.display = 'block';
+  },
+
+  skipPhotos() {
+    this.goToSocialStep3();
+  },
+
+  // Option selection (single choice)
+  selectOption(type, el) {
+    var group = el.parentElement;
+    group.querySelectorAll('.option-item').forEach(function(item) { item.classList.remove('selected'); });
+    el.classList.add('selected');
+    
+    var value = el.textContent.trim();
+    if (type === 'gender') this._onboardData.gender = value;
+    else if (type === 'preference') this._onboardData.preference = value;
+    else if (type === 'goal') this._onboardData.relationshipGoal = value;
+    else if (type === 'smoking') this._onboardData.smoking = value;
+  },
+
+  // Interest toggle (multi choice)
+  toggleInterest(el) {
+    el.classList.toggle('selected');
+  },
+
+  // Photo upload
+  pickPhoto(index) {
+    this._currentPhotoSlot = index;
+    document.getElementById('photo-file-input').click();
+  },
+
+  async handlePhotoSelected(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    
+    var index = this._currentPhotoSlot;
+    UI.showToast('Processando foto...');
+    
+    try {
+      var base64 = await Social.compressAndUploadPhoto(file);
+      this._onboardPhotos[index] = base64;
+      
+      // Update slot visual
+      var slots = document.querySelectorAll('#photo-grid .photo-slot');
+      var slot = slots[index];
+      slot.classList.add('has-photo');
+      slot.innerHTML = '<img src="' + base64 + '"><button class="photo-slot-remove" onclick="event.stopPropagation(); App.removePhoto(' + index + ')">✕</button>';
+      if (index === 0) slot.classList.add('main-photo');
+      
+      UI.showToast('Foto adicionada! 📸');
+    } catch (e) {
+      console.error('Photo error:', e);
+      UI.showToast('Erro ao processar foto');
+    }
+    
+    event.target.value = '';
+  },
+
+  removePhoto(index) {
+    this._onboardPhotos[index] = null;
+    var slots = document.querySelectorAll('#photo-grid .photo-slot');
+    var slot = slots[index];
+    slot.classList.remove('has-photo', 'main-photo');
+    slot.innerHTML = '<div class="photo-slot-add"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span>Adicionar</span></div>';
+  },
+
   async completeOnboarding() {
     try {
-      var name = (document.getElementById('onboard-name').value || '').trim();
-      var weight = parseFloat(document.getElementById('onboard-weight').value) || 0;
-      var height = parseFloat(document.getElementById('onboard-height').value) || 0;
-      var birth = document.getElementById('onboard-birth').value || '';
-
-      if (!name) {
-        UI.showToast('Por favor, informe seu nome');
-        document.getElementById('onboard-name').focus();
-        return;
-      }
+      var d = this._onboardData;
+      d.bio = (document.getElementById('onboard-bio').value || '').trim();
+      d.city = (document.getElementById('onboard-city').value || '').trim();
+      d.state = (document.getElementById('onboard-state').value || '').trim().toUpperCase();
+      d.showWeight = true;
+      d.showHeight = true;
+      d.showLocation = true;
+      
+      // Collect interests
+      var interests = [];
+      document.querySelectorAll('#interests-grid .interest-pill.selected').forEach(function(el) {
+        interests.push(el.textContent.trim());
+      });
+      d.interests = interests;
+      
+      // Collect photos (filter nulls)
+      d.photos = this._onboardPhotos.filter(function(p) { return p != null; });
+      
+      d.weeklyGoal = 10;
 
       // Save locally
-      DB.setSetting('name', name);
+      DB.setSetting('name', d.name);
       DB.setSetting('onboarded', true);
-      if (weight > 0) DB.setSetting('weight', weight);
-      if (height > 0) DB.setSetting('height', height);
-      if (birth) DB.setSetting('birthDate', birth);
+      if (d.weight > 0) DB.setSetting('weight', d.weight);
+      if (d.height > 0) DB.setSetting('height', d.height);
+      if (d.birthDate) DB.setSetting('birthDate', d.birthDate);
 
       // Save to cloud
-      var profileData = { name: name, weight: weight, height: height, birthDate: birth, weeklyGoal: 10 };
-      await Cloud.saveProfile(profileData);
+      await Cloud.saveProfile(d);
 
       this.navigateTo('home');
-      UI.showToast('Bem-vindo, ' + name + '! 🎉');
+      UI.showToast('Bem-vindo, ' + d.name + '! 🎉');
     } catch (e) {
       console.error('Onboarding error:', e);
       UI.showToast('Erro ao salvar perfil.');

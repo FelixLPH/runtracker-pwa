@@ -213,6 +213,21 @@ input[type="date"].input-field::-webkit-calendar-picker-indicator {
   border-radius: var(--radius-sm);
 }
 
+/* === ONBOARDING LABELS === */
+.input-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: var(--space-lg);
+  margin-bottom: var(--space-xs);
+}
+
+textarea.input-field {
+  font-family: 'Poppins', sans-serif;
+  line-height: 1.5;
+}
+
 /* === PASSWORD TOGGLE === */
 .input-password-wrap {
   position: relative;

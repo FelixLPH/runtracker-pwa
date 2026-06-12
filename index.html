@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/pages.css">
   <link rel="stylesheet" href="css/onboarding.css">
+  <link rel="stylesheet" href="css/social.css">
 
   <!-- Firebase SDK (compat for script tags) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -115,10 +116,143 @@
               <input type="date" id="onboard-birth" class="input-field">
             </div>
 
-            <button type="button" class="btn-primary btn-lg" onclick="App.completeOnboarding()">
-              🚀 Começar a correr!
+            <button type="button" class="btn-primary btn-lg" onclick="App.goToSocialStep1()">
+              Próximo →
             </button>
           </div>
+
+          <!-- Step 3: Gender + Preference + Goal -->
+          <div class="onboarding-step" id="onboarding-step-social1" style="display:none">
+            <h2>Sobre você 💜</h2>
+            <p class="text-muted">Nos ajude a conectar você com as pessoas certas.</p>
+
+            <label class="input-label">Sexo</label>
+            <div class="option-group" id="option-gender">
+              <div class="option-item" onclick="App.selectOption('gender', this)">Masculino</div>
+              <div class="option-item" onclick="App.selectOption('gender', this)">Feminino</div>
+              <div class="option-item" onclick="App.selectOption('gender', this)">Prefiro não informar</div>
+            </div>
+
+            <label class="input-label">Quero ver</label>
+            <div class="option-group" id="option-preference">
+              <div class="option-item" onclick="App.selectOption('preference', this)">Homens</div>
+              <div class="option-item" onclick="App.selectOption('preference', this)">Mulheres</div>
+              <div class="option-item" onclick="App.selectOption('preference', this)">Tanto faz</div>
+            </div>
+
+            <label class="input-label">O que busca</label>
+            <div class="option-group" id="option-goal">
+              <div class="option-item" onclick="App.selectOption('goal', this)">Relacionamento sério</div>
+              <div class="option-item" onclick="App.selectOption('goal', this)">Casual</div>
+              <div class="option-item" onclick="App.selectOption('goal', this)">Nada sério, vamos ver</div>
+              <div class="option-item" onclick="App.selectOption('goal', this)">Algo sério, deixa rolar</div>
+              <div class="option-item" onclick="App.selectOption('goal', this)">Amizades</div>
+              <div class="option-item" onclick="App.selectOption('goal', this)">Parceiro de treino</div>
+            </div>
+
+            <button type="button" class="btn-primary btn-lg" onclick="App.goToSocialStep2()">
+              Próximo →
+            </button>
+          </div>
+
+          <!-- Step 4: Photos -->
+          <div class="onboarding-step" id="onboarding-step-photos" style="display:none">
+            <h2>Suas fotos 📸</h2>
+            <p class="text-muted">Adicione até 5 fotos. A primeira será a principal.</p>
+
+            <div class="photo-grid" id="photo-grid">
+              <div class="photo-slot" onclick="App.pickPhoto(0)">
+                <div class="photo-slot-add">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Adicionar</span>
+                </div>
+              </div>
+              <div class="photo-slot" onclick="App.pickPhoto(1)">
+                <div class="photo-slot-add">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Adicionar</span>
+                </div>
+              </div>
+              <div class="photo-slot" onclick="App.pickPhoto(2)">
+                <div class="photo-slot-add">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Adicionar</span>
+                </div>
+              </div>
+              <div class="photo-slot" onclick="App.pickPhoto(3)">
+                <div class="photo-slot-add">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Adicionar</span>
+                </div>
+              </div>
+              <div class="photo-slot" onclick="App.pickPhoto(4)">
+                <div class="photo-slot-add">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  <span>Adicionar</span>
+                </div>
+              </div>
+            </div>
+            <input type="file" id="photo-file-input" accept="image/*" style="display:none" onchange="App.handlePhotoSelected(event)">
+
+            <button type="button" class="btn-primary btn-lg" onclick="App.goToSocialStep3()">
+              Próximo →
+            </button>
+            <button type="button" class="btn-back-link" onclick="App.skipPhotos()">
+              Pular por agora
+            </button>
+          </div>
+
+          <!-- Step 5: Bio + Interests + Smoking + Location -->
+          <div class="onboarding-step" id="onboarding-step-social3" style="display:none">
+            <h2>Últimos detalhes ✨</h2>
+            <p class="text-muted">Conte mais sobre você</p>
+
+            <div class="input-group">
+              <label for="onboard-bio">Bio</label>
+              <textarea id="onboard-bio" class="input-field" placeholder="Apaixonado por corrida, café e boas conversas..." maxlength="300" rows="3" style="resize:none"></textarea>
+            </div>
+
+            <label class="input-label">O que curte?</label>
+            <div class="interests-grid" id="interests-grid">
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🏖️ Praia</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🌿 Campo</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🏠 Ficar em casa</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🏋️ Treinar</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">✈️ Viajar</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🎵 Música</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">📚 Ler</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🎮 Games</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🍳 Cozinhar</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🐾 Pets</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🎬 Filmes</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">☕ Café</div>
+            </div>
+
+            <label class="input-label">Sobre fumar</label>
+            <div class="option-group" id="option-smoking">
+              <div class="option-item" onclick="App.selectOption('smoking', this)">Não fumo</div>
+              <div class="option-item" onclick="App.selectOption('smoking', this)">Fumo</div>
+              <div class="option-item" onclick="App.selectOption('smoking', this)">Tentando parar</div>
+              <div class="option-item" onclick="App.selectOption('smoking', this)">Fumo quando bebo</div>
+              <div class="option-item" onclick="App.selectOption('smoking', this)">Não curto fumante</div>
+            </div>
+
+            <div class="input-row">
+              <div class="input-group">
+                <label for="onboard-city">Cidade</label>
+                <input type="text" id="onboard-city" class="input-field" placeholder="São Paulo">
+              </div>
+              <div class="input-group">
+                <label for="onboard-state">Estado</label>
+                <input type="text" id="onboard-state" class="input-field" placeholder="SP" maxlength="2">
+              </div>
+            </div>
+
+            <button type="button" class="btn-primary btn-lg" onclick="App.completeOnboarding()">
+              🚀 Começar!
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
@@ -191,30 +325,94 @@
     <!-- ===== ACTIVITY DETAIL PAGE ===== -->
     <div class="page" id="page-activity"></div>
 
+    <!-- ===== DISCOVER PAGE ===== -->
+    <div class="page" id="page-discover">
+      <div class="discover-container">
+        <div class="discover-header">
+          <h2>Descobrir 💜</h2>
+          <div class="filter-bar">
+            <label>Idade:</label>
+            <input type="range" class="filter-range" id="filter-age-min" min="18" max="60" value="18">
+            <span class="filter-value" id="filter-age-label">18-60</span>
+            <input type="range" class="filter-range" id="filter-age-max" min="18" max="60" value="60">
+          </div>
+        </div>
+        <div class="profile-card-container" id="discover-card-area">
+          <div class="discover-empty">
+            <div class="discover-empty-icon">🔍</div>
+            <p>Carregando perfis...</p>
+          </div>
+        </div>
+        <div class="discover-actions" id="discover-actions" style="display:none">
+          <button class="btn-action btn-dislike" id="btn-dislike" onclick="App.dislikeProfile()">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <button class="btn-action btn-like" id="btn-like" onclick="App.likeProfile()">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MATCHES PAGE ===== -->
+    <div class="page" id="page-matches">
+      <div class="matches-header">
+        <h2>Conexões 🤝</h2>
+        <p class="text-muted">Pessoas que curtiram você de volta</p>
+      </div>
+      <div class="matches-grid" id="matches-list">
+        <div class="discover-empty">
+          <div class="discover-empty-icon">💜</div>
+          <p>Seus matches aparecerão aqui</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Match Popup Overlay -->
+    <div class="match-overlay" id="match-overlay">
+      <h2 class="match-title">É um match! 💜</h2>
+      <div class="match-photos" id="match-photos"></div>
+      <p class="match-message" id="match-message">Vocês se curtiram!</p>
+      <button class="btn-match-continue" onclick="App.closeMatch()">Continuar descobrindo</button>
+    </div>
+
     <!-- ===== BOTTOM NAVIGATION ===== -->
     <nav class="bottom-nav" id="bottom-nav">
       <button class="nav-item active" data-page="home" id="nav-home">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
           <polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
         <span>Início</span>
       </button>
+      <button class="nav-item" data-page="discover" id="nav-discover">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        <span>Descobrir</span>
+      </button>
       <button class="nav-item" data-page="record" id="nav-record">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
           <circle cx="12" cy="12" r="4" fill="currentColor"/>
         </svg>
         <span>Gravar</span>
       </button>
-      <button class="nav-item" data-page="history" id="nav-history">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      <button class="nav-item" data-page="matches" id="nav-matches">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
         </svg>
-        <span>Histórico</span>
+        <span>Matches</span>
       </button>
       <button class="nav-item" data-page="profile" id="nav-profile">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
           <circle cx="12" cy="7" r="4"/>
         </svg>
@@ -228,7 +426,7 @@
     <div class="install-banner-content">
       <div class="install-banner-icon">📲</div>
       <div class="install-banner-text">
-        <strong>Instalar RunTracker</strong>
+        <strong>Instalar PACEMEET</strong>
         <span>Acesse rápido como um app real</span>
       </div>
     </div>
@@ -249,8 +447,10 @@
   <script src="js/cloud.js"></script>
   <script src="js/gps.js"></script>
   <script src="js/map.js"></script>
+  <script src="js/social.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/app.js"></script>
+
 
   <!-- PWA Install Prompt -->
   <script>

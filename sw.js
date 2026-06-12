@@ -3,7 +3,7 @@
 // Cache-first strategy for app shell, network-first for data
 // ============================================================
 
-const CACHE_NAME = 'pacemeet-v1';
+const CACHE_NAME = 'pacemeet-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -11,12 +11,14 @@ const STATIC_ASSETS = [
   './css/components.css',
   './css/pages.css',
   './css/onboarding.css',
+  './css/social.css',
   './js/stats.js',
   './js/timer.js',
   './js/db.js',
   './js/cloud.js',
   './js/gps.js',
   './js/map.js',
+  './js/social.js',
   './js/ui.js',
   './js/app.js',
   './manifest.json',

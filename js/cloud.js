@@ -145,6 +145,7 @@ const Cloud = {
   },
 
   // ========== LOAD PROFILE ==========
+  _cachedProfile: null,
   async loadProfile() {
     var uid = this.getUID();
     if (!this._initialized || !this._db || !uid) return null;
@@ -152,7 +153,8 @@ const Cloud = {
       var snapshot = await this._db.ref('users/' + uid + '/profile').once('value');
       if (snapshot.exists()) {
         console.log('☁️ Profile loaded');
-        return snapshot.val();
+        this._cachedProfile = snapshot.val();
+        return this._cachedProfile;
       }
       return null;
     } catch (e) {
