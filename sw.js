@@ -3,24 +3,24 @@
 // Cache-first strategy for app shell, network-first for data
 // ============================================================
 
-const CACHE_NAME = 'runtracker-v6';
+const CACHE_NAME = 'runtracker-v7';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/css/index.css',
-  '/css/components.css',
-  '/css/pages.css',
-  '/css/onboarding.css',
-  '/js/stats.js',
-  '/js/timer.js',
-  '/js/db.js',
-  '/js/gps.js',
-  '/js/map.js',
-  '/js/ui.js',
-  '/js/app.js',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  './',
+  './index.html',
+  './css/index.css',
+  './css/components.css',
+  './css/pages.css',
+  './css/onboarding.css',
+  './js/stats.js',
+  './js/timer.js',
+  './js/db.js',
+  './js/gps.js',
+  './js/map.js',
+  './js/ui.js',
+  './js/app.js',
+  './manifest.json',
+  './icons/icon-192x192.png',
+  './icons/icon-512x512.png'
 ];
 
 // External assets to cache (fonts + leaflet)
