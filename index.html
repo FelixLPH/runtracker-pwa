@@ -53,15 +53,15 @@
         <div class="onboarding-form">
           <!-- Login/Signup form -->
           <div class="onboarding-step" id="onboarding-step-login">
-            <h2 id="email-form-title">Criar conta 🏃</h2>
-            <p class="text-muted" id="email-form-subtitle">Crie sua conta para salvar seus dados na nuvem.</p>
+            <h2 id="email-form-title">Entrar 👋</h2>
+            <p class="text-muted" id="email-form-subtitle">Use seu email e senha</p>
 
             <div class="input-group">
               <label for="auth-email">Email</label>
               <input type="email" id="auth-email" class="input-field" placeholder="seu@email.com" autocomplete="email">
             </div>
             <div class="input-group">
-              <label for="auth-password">Senha (mín. 6 caracteres)</label>
+              <label for="auth-password">Senha</label>
               <div class="input-password-wrap">
                 <input type="password" id="auth-password" class="input-field" placeholder="••••••" minlength="6" autocomplete="current-password">
                 <button type="button" class="btn-eye" id="btn-toggle-pw" onclick="App.togglePassword()">
@@ -73,14 +73,15 @@
             </div>
 
             <button type="button" class="btn-primary btn-lg" id="btn-email-submit" onclick="App.submitEmail()">
-              🚀 Criar conta
+              🔓 Entrar
             </button>
 
-            <p class="auth-switch" id="email-toggle">
-              Já tem conta? <span class="accent" onclick="App.toggleEmailMode()">Entrar</span>
-            </p>
-            <p class="auth-forgot" id="auth-forgot" style="display:none">
+            <p class="auth-forgot" id="auth-forgot">
               <span class="accent" onclick="App.resetPassword()">Esqueci minha senha</span>
+            </p>
+
+            <p class="auth-switch" id="email-toggle">
+              Não tem conta? <span class="accent" onclick="App.toggleEmailMode()">Criar conta</span>
             </p>
 
             <p class="onboarding-privacy">☁️ Seus dados são salvos na nuvem com segurança.</p>

@@ -176,7 +176,7 @@ const App = {
   },
 
   // ========== EMAIL AUTH ==========
-  _emailMode: 'signup',
+  _emailMode: 'login',
 
   togglePassword() {
     var input = document.getElementById('auth-password');
@@ -191,14 +191,14 @@ const App = {
   },
 
   toggleEmailMode() {
-    this._emailMode = this._emailMode === 'signup' ? 'login' : 'signup';
+    this._emailMode = this._emailMode === 'login' ? 'signup' : 'login';
     this._updateEmailFormUI();
   },
 
   _updateEmailFormUI() {
     var isLogin = this._emailMode === 'login';
     document.getElementById('email-form-title').textContent = isLogin ? 'Entrar 👋' : 'Criar conta 🏃';
-    document.getElementById('email-form-subtitle').textContent = isLogin ? 'Use seu email e senha' : 'Crie sua conta para salvar seus dados na nuvem.';
+    document.getElementById('email-form-subtitle').textContent = isLogin ? 'Use seu email e senha' : 'Crie sua conta (mín. 6 caracteres na senha)';
     document.getElementById('btn-email-submit').innerHTML = isLogin ? '🔓 Entrar' : '🚀 Criar conta';
     document.getElementById('email-toggle').innerHTML = isLogin
       ? 'Não tem conta? <span class="accent" onclick="App.toggleEmailMode()">Criar conta</span>'

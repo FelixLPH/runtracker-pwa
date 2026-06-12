@@ -720,7 +720,7 @@ const UI = {
     var profileStep = document.getElementById('onboarding-step-profile');
     if (loginStep) loginStep.style.display = 'block';
     if (profileStep) profileStep.style.display = 'none';
-    App._emailMode = 'signup';
+    App._emailMode = 'login';
     App.navigateTo('onboarding');
     this.showToast('Você saiu da conta');
   },
