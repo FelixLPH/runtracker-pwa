@@ -11,7 +11,7 @@ const DB = {
       return;
     }
 
-    // Request persistent storage so browser doesn't evict our data
+    // Request persistent storage
     try {
       if (navigator.storage && navigator.storage.persist) {
         var granted = await navigator.storage.persist();
@@ -29,16 +29,13 @@ const DB = {
             store.createIndex('date', 'date', { unique: false });
             store.createIndex('distance', 'distance', { unique: false });
           }
-          // New: settings store for persistent profile data
           if (!db.objectStoreNames.contains(DB.SETTINGS_STORE)) {
             db.createObjectStore(DB.SETTINGS_STORE, { keyPath: 'key' });
           }
         };
         request.onsuccess = function() {
           DB._db = request.result;
-          // Restore settings from IndexedDB → localStorage
           DB.restoreSettings().then(function() {
-            // Also backup current localStorage → IndexedDB
             DB._syncSettingsToIDB();
             resolve();
           });
@@ -51,7 +48,48 @@ const DB = {
     });
   },
 
-  // Sync existing localStorage settings into IndexedDB for backup
+  // ========== COOKIE BACKUP (Samsung-proof) ==========
+  _setCookie(key, value) {
+    try {
+      var encoded = encodeURIComponent(JSON.stringify(value));
+      // Cookie expires in 10 years
+      var expires = new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toUTCString();
+      document.cookie = 'rt_' + key + '=' + encoded + '; expires=' + expires + '; path=/; SameSite=Lax';
+    } catch (e) { /* ignore */ }
+  },
+
+  _getCookie(key) {
+    try {
+      var name = 'rt_' + key + '=';
+      var cookies = document.cookie.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var c = cookies[i].trim();
+        if (c.indexOf(name) === 0) {
+          return JSON.parse(decodeURIComponent(c.substring(name.length)));
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return undefined;
+  },
+
+  _getAllCookieSettings() {
+    var settings = {};
+    try {
+      var cookies = document.cookie.split(';');
+      for (var i = 0; i < cookies.length; i++) {
+        var c = cookies[i].trim();
+        if (c.indexOf('rt_') === 0) {
+          var eqIdx = c.indexOf('=');
+          var key = c.substring(3, eqIdx); // remove 'rt_' prefix
+          var val = decodeURIComponent(c.substring(eqIdx + 1));
+          try { settings[key] = JSON.parse(val); } catch (e) { settings[key] = val; }
+        }
+      }
+    } catch (e) { /* ignore */ }
+    return settings;
+  },
+
+  // ========== SYNC & RESTORE ==========
   _syncSettingsToIDB() {
     if (!this._db) return;
     try {
@@ -63,10 +101,9 @@ const DB = {
           this._setSettingIDB(shortKey, val);
         }
       }
-    } catch (e) { /* localStorage might be blocked */ }
+    } catch (e) { /* ignore */ }
   },
 
-  // Save a single setting to IndexedDB
   _setSettingIDB(key, rawValue) {
     if (!this._db) return;
     try {
@@ -76,35 +113,52 @@ const DB = {
     } catch (e) { /* ignore */ }
   },
 
-  // Restore all settings from IndexedDB → localStorage + memory cache
   async restoreSettings() {
-    if (!this._db) return;
-    try {
-      var tx = this._db.transaction(this.SETTINGS_STORE, 'readonly');
-      var store = tx.objectStore(this.SETTINGS_STORE);
-      var req = store.getAll();
-      return new Promise(function(resolve) {
-        req.onsuccess = function() {
-          var items = req.result || [];
-          console.log('📦 Restoring ' + items.length + ' settings from IndexedDB');
-          for (var i = 0; i < items.length; i++) {
-            var item = items[i];
-            // ALWAYS restore to localStorage (browser may have cleared it)
-            try {
-              localStorage.setItem('runtracker_' + item.key, item.value);
-            } catch (e) { /* blocked */ }
-            // Restore to memory cache
-            try {
-              DB._settingsCache[item.key] = JSON.parse(item.value);
-            } catch (e) {
-              DB._settingsCache[item.key] = item.value;
+    // 1. Try restore from IndexedDB first
+    var restoredFromIDB = false;
+    if (this._db) {
+      try {
+        var tx = this._db.transaction(this.SETTINGS_STORE, 'readonly');
+        var store = tx.objectStore(this.SETTINGS_STORE);
+        var req = store.getAll();
+        await new Promise(function(resolve) {
+          req.onsuccess = function() {
+            var items = req.result || [];
+            console.log('📦 IDB has ' + items.length + ' settings');
+            for (var i = 0; i < items.length; i++) {
+              var item = items[i];
+              try {
+                localStorage.setItem('runtracker_' + item.key, item.value);
+              } catch (e) { /* blocked */ }
+              try {
+                DB._settingsCache[item.key] = JSON.parse(item.value);
+              } catch (e) {
+                DB._settingsCache[item.key] = item.value;
+              }
             }
-          }
-          resolve();
-        };
-        req.onerror = function() { resolve(); };
-      });
-    } catch (e) { return; }
+            if (items.length > 0) restoredFromIDB = true;
+            resolve();
+          };
+          req.onerror = function() { resolve(); };
+        });
+      } catch (e) { /* ignore */ }
+    }
+
+    // 2. If IDB was empty, try restore from cookies
+    if (!restoredFromIDB) {
+      var cookieSettings = this._getAllCookieSettings();
+      var cookieKeys = Object.keys(cookieSettings);
+      console.log('🍪 Restoring from ' + cookieKeys.length + ' cookies');
+      for (var j = 0; j < cookieKeys.length; j++) {
+        var ck = cookieKeys[j];
+        this._settingsCache[ck] = cookieSettings[ck];
+        try {
+          localStorage.setItem('runtracker_' + ck, JSON.stringify(cookieSettings[ck]));
+        } catch (e) { /* blocked */ }
+        // Also save to IDB for next time
+        this._setSettingIDB(ck, JSON.stringify(cookieSettings[ck]));
+      }
+    }
   },
 
   // ========== ACTIVITIES ==========
@@ -173,15 +227,15 @@ const DB = {
     });
   },
 
-  // ========== SETTINGS (dual storage: localStorage + IndexedDB) ==========
+  // ========== SETTINGS (triple storage: localStorage + IndexedDB + Cookies) ==========
   _settingsCache: {},
 
   getSetting(key, defaultValue) {
-    // 1. Check memory cache
+    // 1. Memory cache
     if (this._settingsCache.hasOwnProperty(key)) {
       return this._settingsCache[key];
     }
-    // 2. Try localStorage
+    // 2. localStorage
     try {
       var val = localStorage.getItem('runtracker_' + key);
       if (val !== null) {
@@ -190,18 +244,25 @@ const DB = {
         return parsed;
       }
     } catch (e) { /* blocked */ }
-    // 3. Return default
+    // 3. Cookie fallback
+    var cookieVal = this._getCookie(key);
+    if (cookieVal !== undefined) {
+      this._settingsCache[key] = cookieVal;
+      return cookieVal;
+    }
     return defaultValue;
   },
 
   setSetting(key, value) {
-    // Save to memory cache
+    // Memory cache
     this._settingsCache[key] = value;
-    // Save to localStorage
+    // localStorage
     try {
       localStorage.setItem('runtracker_' + key, JSON.stringify(value));
     } catch (e) { /* blocked */ }
-    // Save to IndexedDB (backup)
+    // IndexedDB backup
     this._setSettingIDB(key, JSON.stringify(value));
+    // Cookie backup (Samsung-proof)
+    this._setCookie(key, value);
   }
 };
