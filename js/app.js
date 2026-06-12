@@ -53,6 +53,7 @@ const App = {
       if (profile && profile.name) {
         // Existing user — sync and go home
         await Cloud.syncFromCloud();
+        this._updateSocialNav(profile.socialEnabled === true);
         this.navigateTo('home');
         UI.showToast('Bem-vindo, ' + profile.name + '! 🎉');
       } else {
@@ -390,6 +391,7 @@ const App = {
     var profile = await Cloud.loadProfile();
     if (profile && profile.name) {
       await Cloud.syncFromCloud();
+      this._updateSocialNav(profile.socialEnabled === true);
       this.navigateTo('home');
       UI.showToast('Bem-vindo, ' + profile.name + '! 🎉');
     } else {
@@ -410,7 +412,7 @@ const App = {
   _currentPhotoSlot: 0,
 
   // Step transitions
-  goToSocialStep1() {
+  goToSocialChoice() {
     var name = (document.getElementById('onboard-name').value || '').trim();
     if (!name) { UI.showToast('Informe seu nome'); return; }
     
@@ -420,6 +422,42 @@ const App = {
     this._onboardData.birthDate = document.getElementById('onboard-birth').value || '';
     
     document.getElementById('onboarding-step-profile').style.display = 'none';
+    document.getElementById('onboarding-step-social-choice').style.display = 'block';
+  },
+
+  enableSocial() {
+    this._onboardData.socialEnabled = true;
+    document.getElementById('onboarding-step-social-choice').style.display = 'none';
+    document.getElementById('onboarding-step-social1').style.display = 'block';
+  },
+
+  async skipSocial() {
+    this._onboardData.socialEnabled = false;
+    this._onboardData.weeklyGoal = 10;
+    
+    DB.setSetting('name', this._onboardData.name);
+    DB.setSetting('onboarded', true);
+    DB.setSetting('socialEnabled', false);
+    if (this._onboardData.weight > 0) DB.setSetting('weight', this._onboardData.weight);
+    if (this._onboardData.height > 0) DB.setSetting('height', this._onboardData.height);
+    if (this._onboardData.birthDate) DB.setSetting('birthDate', this._onboardData.birthDate);
+
+    await Cloud.saveProfile(this._onboardData);
+    this._updateSocialNav(false);
+    this.navigateTo('home');
+    UI.showToast('Bem-vindo, ' + this._onboardData.name + '! 🏃');
+  },
+
+  // Show/hide social nav tabs
+  _updateSocialNav(enabled) {
+    var discoverTab = document.getElementById('nav-discover');
+    var matchesTab = document.getElementById('nav-matches');
+    if (discoverTab) discoverTab.style.display = enabled ? 'flex' : 'none';
+    if (matchesTab) matchesTab.style.display = enabled ? 'flex' : 'none';
+  },
+
+  goToSocialStep1() {
+    document.getElementById('onboarding-step-social-choice').style.display = 'none';
     document.getElementById('onboarding-step-social1').style.display = 'block';
   },
 
@@ -521,10 +559,12 @@ const App = {
       d.photos = this._onboardPhotos.filter(function(p) { return p != null; });
       
       d.weeklyGoal = 10;
+      d.socialEnabled = true;
 
       // Save locally
       DB.setSetting('name', d.name);
       DB.setSetting('onboarded', true);
+      DB.setSetting('socialEnabled', true);
       if (d.weight > 0) DB.setSetting('weight', d.weight);
       if (d.height > 0) DB.setSetting('height', d.height);
       if (d.birthDate) DB.setSetting('birthDate', d.birthDate);
@@ -532,6 +572,7 @@ const App = {
       // Save to cloud
       await Cloud.saveProfile(d);
 
+      this._updateSocialNav(true);
       this.navigateTo('home');
       UI.showToast('Bem-vindo, ' + d.name + '! 🎉');
     } catch (e) {

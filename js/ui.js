@@ -616,6 +616,18 @@ const UI = {
         </div>
       </div>
 
+      <div class="profile-section glass-card">
+        <h3 class="card-title">💜 PACEMEET Social</h3>
+        <p class="text-muted" style="font-size:0.8rem; margin-bottom:var(--space-md);">Ative para descobrir corredores, dar match e se conectar.</p>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:0.9rem;">Perfil social ativo</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="social-toggle" ${Cloud._cachedProfile && Cloud._cachedProfile.socialEnabled ? 'checked' : ''} onchange="UI.toggleSocial(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
       <div class="profile-divider"></div>
 
       <button class="btn-logout" onclick="UI.logout()">
@@ -686,16 +698,34 @@ const UI = {
     if (birthDate) DB.setSetting('birthDate', birthDate);
     DB.setSetting('weeklyGoal', goal);
 
-    // Sync to cloud
-    Cloud.saveProfile({
+    // Sync to cloud — merge with existing profile to preserve social data
+    var existingProfile = Cloud._cachedProfile || {};
+    var updatedProfile = Object.assign({}, existingProfile, {
       name: name || DB.getSetting('name', ''),
       weight: weight || DB.getSetting('weight', 0),
       height: height || DB.getSetting('height', 0),
       birthDate: birthDate || DB.getSetting('birthDate', ''),
       weeklyGoal: goal
     });
+    Cloud.saveProfile(updatedProfile);
 
     this.showToast('Perfil salvo com sucesso! ✅');
+  },
+
+  async toggleSocial(enabled) {
+    DB.setSetting('socialEnabled', enabled);
+    App._updateSocialNav(enabled);
+    
+    // Update in cloud
+    var profile = Cloud._cachedProfile || {};
+    profile.socialEnabled = enabled;
+    await Cloud.saveProfile(profile);
+    
+    if (enabled) {
+      this.showToast('Social ativado! 💜');
+    } else {
+      this.showToast('Social desativado');
+    }
   },
 
   async exportData() {

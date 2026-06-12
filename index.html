@@ -116,8 +116,30 @@
               <input type="date" id="onboard-birth" class="input-field">
             </div>
 
-            <button type="button" class="btn-primary btn-lg" onclick="App.goToSocialStep1()">
+            <button type="button" class="btn-primary btn-lg" onclick="App.goToSocialChoice()">
               Próximo →
+            </button>
+          </div>
+
+          <!-- Step 2b: Social opt-in -->
+          <div class="onboarding-step" id="onboarding-step-social-choice" style="display:none">
+            <h2>PACEMEET Social 💜</h2>
+            <p class="text-muted">Quer conhecer outros corredores? Ative o modo social para descobrir pessoas, dar match e se conectar!</p>
+
+            <div style="margin: var(--space-xl) 0; text-align: center;">
+              <div style="font-size: 3rem; margin-bottom: var(--space-md);">💜🏃‍♂️🤝</div>
+              <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                • Descubra corredores perto de você<br>
+                • Dê match com quem tem o mesmo ritmo<br>
+                • Encontre parceiros de treino ou mais
+              </p>
+            </div>
+
+            <button type="button" class="btn-primary btn-lg" onclick="App.enableSocial()">
+              💜 Ativar Social
+            </button>
+            <button type="button" class="btn-back-link" onclick="App.skipSocial()" style="margin-top: var(--space-md); font-size: 0.95rem;">
+              Só quero treinar, pular →
             </button>
           </div>
 
