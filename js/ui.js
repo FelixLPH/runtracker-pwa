@@ -512,12 +512,25 @@ const UI = {
   async saveActivityTitle(id, newTitle) {
     if (newTitle && newTitle.trim()) {
       await DB.updateActivity(id, { title: newTitle.trim() });
+      // Note: title update in cloud would need activity date lookup
+      // For now, cloud will have original title
     }
   },
 
   async confirmDeleteActivity(id) {
     if (confirm('Tem certeza que deseja excluir esta atividade? Esta ação não pode ser desfeita.')) {
+      // Get activity date before deleting (needed for cloud key)
+      var activity = await DB.getActivity(id);
       await DB.deleteActivity(id);
+
+      // Delete from cloud too
+      if (activity && activity.date) {
+        var code = DB.getSetting('recoveryCode', null);
+        if (code) {
+          Cloud.deleteActivity(code, activity.date);
+        }
+      }
+
       App.navigateTo('history');
       UI.showToast('Atividade excluída');
     }

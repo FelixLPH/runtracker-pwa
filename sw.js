@@ -3,7 +3,7 @@
 // Cache-first strategy for app shell, network-first for data
 // ============================================================
 
-const CACHE_NAME = 'runtracker-v10';
+const CACHE_NAME = 'runtracker-v11';
 const STATIC_ASSETS = [
   './',
   './index.html',

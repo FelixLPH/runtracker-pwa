@@ -447,6 +447,14 @@ const App = {
       const id = await DB.saveActivity(activity);
       activity.id = id;
       console.log(`✅ Activity saved with ID: ${id}`);
+
+      // Sync to cloud
+      var code = DB.getSetting('recoveryCode', null);
+      if (code) {
+        Cloud.saveActivity(code, activity).then(function() {
+          console.log('☁️ Activity synced to cloud');
+        });
+      }
     } catch (e) {
       console.error('❌ Failed to save activity:', e);
       UI.showToast('Erro ao salvar atividade');
