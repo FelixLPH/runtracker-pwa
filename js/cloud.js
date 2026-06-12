@@ -43,8 +43,18 @@ const Cloud = {
     if (!this._initialized || !this._auth) throw new Error('Firebase not initialized');
     var provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    // Use redirect (works on mobile, no popup blocking)
-    await this._auth.signInWithRedirect(provider);
+    // Try popup first (works on most mobile), fallback to redirect
+    try {
+      var result = await this._auth.signInWithPopup(provider);
+      this._user = result.user;
+      return this._user;
+    } catch (popupErr) {
+      if (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/operation-not-supported-in-this-environment') {
+        await this._auth.signInWithRedirect(provider);
+        return null; // Page will reload
+      }
+      throw popupErr;
+    }
   },
 
   async signupWithEmail(email, password) {
