@@ -165,6 +165,54 @@ input[type="date"].input-field::-webkit-calendar-picker-indicator {
   cursor: pointer;
 }
 
+/* === GOOGLE LOGIN BUTTON === */
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: 16px 24px;
+  background: #FFFFFF;
+  color: #3c4043;
+  border: none;
+  border-radius: var(--radius-xl);
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  margin: var(--space-xl) 0 var(--space-lg);
+}
+
+.btn-google:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transform: translateY(-1px);
+}
+
+.btn-google:active {
+  transform: scale(0.98);
+}
+
+.btn-google:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.btn-google svg {
+  flex-shrink: 0;
+}
+
+.login-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 23, 68, 0.1);
+  border-radius: var(--radius-sm);
+}
+
 /* === ONBOARDING DIVIDER === */
 .onboarding-divider {
   display: flex;

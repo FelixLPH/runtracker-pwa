@@ -519,16 +519,12 @@ const UI = {
 
   async confirmDeleteActivity(id) {
     if (confirm('Tem certeza que deseja excluir esta atividade? Esta ação não pode ser desfeita.')) {
-      // Get activity date before deleting (needed for cloud key)
       var activity = await DB.getActivity(id);
       await DB.deleteActivity(id);
 
       // Delete from cloud too
       if (activity && activity.date) {
-        var code = DB.getSetting('recoveryCode', null);
-        if (code) {
-          Cloud.deleteActivity(code, activity.date);
-        }
+        Cloud.deleteActivity(activity.date);
       }
 
       App.navigateTo('history');
@@ -612,10 +608,11 @@ const UI = {
       </button>
 
       <div class="profile-section glass-card">
-        <h3 class="card-title">🔑 Código de recuperação</h3>
+        <h3 class="card-title">☁️ Conta vinculada</h3>
         <div style="text-align:center; padding: var(--space-md) 0;">
-          <div style="font-size:1.4rem; font-weight:800; color:var(--accent); letter-spacing:2px; background:var(--bg-secondary); padding:var(--space-md); border-radius:var(--radius-sm); border:1px dashed var(--accent);">${DB.getSetting('recoveryCode', '---')}</div>
-          <p class="text-muted" style="margin-top:var(--space-sm); font-size:0.75rem;">Use este código para recuperar seus dados em qualquer dispositivo</p>
+          <div style="font-size:0.95rem; color:var(--text-secondary); background:var(--bg-secondary); padding:var(--space-md); border-radius:var(--radius-sm); border:1px solid var(--bg-tertiary);">
+            <span style="color:var(--success);">●</span> ${Cloud.getCurrentUser() ? Cloud.getCurrentUser().email : 'Google'}</div>
+          <p class="text-muted" style="margin-top:var(--space-sm); font-size:0.75rem;">Seus dados estão seguros na nuvem via Google</p>
         </div>
       </div>
 
@@ -690,16 +687,13 @@ const UI = {
     DB.setSetting('weeklyGoal', goal);
 
     // Sync to cloud
-    var code = DB.getSetting('recoveryCode', null);
-    if (code) {
-      Cloud.saveProfile(code, {
-        name: name || DB.getSetting('name', ''),
-        weight: weight || DB.getSetting('weight', 0),
-        height: height || DB.getSetting('height', 0),
-        birthDate: birthDate || DB.getSetting('birthDate', ''),
-        weeklyGoal: goal
-      });
-    }
+    Cloud.saveProfile({
+      name: name || DB.getSetting('name', ''),
+      weight: weight || DB.getSetting('weight', 0),
+      height: height || DB.getSetting('height', 0),
+      birthDate: birthDate || DB.getSetting('birthDate', ''),
+      weeklyGoal: goal
+    });
 
     this.showToast('Perfil salvo com sucesso! ✅');
   },
@@ -719,8 +713,14 @@ const UI = {
     this.showToast('Dados exportados! 📤');
   },
 
-  logout() {
+  async logout() {
+    await Cloud.logout();
     DB.setSetting('onboarded', false);
+    // Reset login screen visibility
+    var loginStep = document.getElementById('onboarding-step-login');
+    var profileStep = document.getElementById('onboarding-step-profile');
+    if (loginStep) loginStep.style.display = 'block';
+    if (profileStep) profileStep.style.display = 'none';
     App.navigateTo('onboarding');
     this.showToast('Você saiu da conta');
   },

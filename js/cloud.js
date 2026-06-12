@@ -1,12 +1,13 @@
 // ============================================================
 // RunTracker — Firebase Cloud Storage Module
-// Uses Realtime Database (free, no billing required)
-// Recovery code system (no login required)
+// Uses Google Sign-In + Realtime Database
 // ============================================================
 
 const Cloud = {
   _db: null,
+  _auth: null,
   _initialized: false,
+  _user: null,
 
   // Firebase config
   _config: {
@@ -29,28 +30,62 @@ const Cloud = {
         firebase.initializeApp(this._config);
       }
       this._db = firebase.database();
+      this._auth = firebase.auth();
       this._initialized = true;
-      console.log('✅ Firebase Realtime DB initialized');
+      console.log('✅ Firebase initialized');
     } catch (e) {
       console.error('Firebase init error:', e);
     }
   },
 
-  // ========== RECOVERY CODE ==========
-  generateCode(name) {
-    var cleanName = (name || 'user').toUpperCase().replace(/[^A-Z]/g, '').substring(0, 4);
-    if (cleanName.length < 2) cleanName = 'USER';
-    var num = Math.floor(1000 + Math.random() * 9000);
-    return cleanName + '-' + num;
+  // ========== AUTH ==========
+  async loginWithGoogle() {
+    if (!this._initialized || !this._auth) throw new Error('Firebase not initialized');
+    var provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    var result = await this._auth.signInWithPopup(provider);
+    this._user = result.user;
+    console.log('✅ Logged in as:', this._user.displayName);
+    return this._user;
+  },
+
+  getCurrentUser() {
+    if (!this._auth) return null;
+    return this._auth.currentUser;
+  },
+
+  getUID() {
+    var user = this.getCurrentUser();
+    return user ? user.uid : null;
+  },
+
+  async logout() {
+    if (this._auth) {
+      await this._auth.signOut();
+      this._user = null;
+    }
+  },
+
+  // Wait for auth state to resolve on load
+  waitForAuth() {
+    if (!this._auth) return Promise.resolve(null);
+    return new Promise(function(resolve) {
+      var unsubscribe = Cloud._auth.onAuthStateChanged(function(user) {
+        unsubscribe();
+        Cloud._user = user;
+        resolve(user);
+      });
+    });
   },
 
   // ========== SAVE PROFILE ==========
-  async saveProfile(code, profileData) {
-    if (!this._initialized || !this._db) return false;
+  async saveProfile(profileData) {
+    var uid = this.getUID();
+    if (!this._initialized || !this._db || !uid) return false;
     try {
-      await this._db.ref('users/' + code + '/profile').set(profileData);
-      await this._db.ref('users/' + code + '/updatedAt').set(Date.now());
-      console.log('☁️ Profile saved:', code);
+      await this._db.ref('users/' + uid + '/profile').set(profileData);
+      await this._db.ref('users/' + uid + '/updatedAt').set(Date.now());
+      console.log('☁️ Profile saved');
       return true;
     } catch (e) {
       console.error('Cloud save error:', e);
@@ -59,12 +94,13 @@ const Cloud = {
   },
 
   // ========== LOAD PROFILE ==========
-  async loadProfile(code) {
-    if (!this._initialized || !this._db) return null;
+  async loadProfile() {
+    var uid = this.getUID();
+    if (!this._initialized || !this._db || !uid) return null;
     try {
-      var snapshot = await this._db.ref('users/' + code + '/profile').once('value');
+      var snapshot = await this._db.ref('users/' + uid + '/profile').once('value');
       if (snapshot.exists()) {
-        console.log('☁️ Profile loaded:', code);
+        console.log('☁️ Profile loaded');
         return snapshot.val();
       }
       return null;
@@ -75,11 +111,12 @@ const Cloud = {
   },
 
   // ========== SAVE ACTIVITY ==========
-  async saveActivity(code, activity) {
-    if (!this._initialized || !this._db) return false;
+  async saveActivity(activity) {
+    var uid = this.getUID();
+    if (!this._initialized || !this._db || !uid) return false;
     try {
       var actId = 'act_' + new Date(activity.date).getTime();
-      await this._db.ref('users/' + code + '/activities/' + actId).set(activity);
+      await this._db.ref('users/' + uid + '/activities/' + actId).set(activity);
       console.log('☁️ Activity saved');
       return true;
     } catch (e) {
@@ -89,10 +126,11 @@ const Cloud = {
   },
 
   // ========== LOAD ALL ACTIVITIES ==========
-  async loadActivities(code) {
-    if (!this._initialized || !this._db) return [];
+  async loadActivities() {
+    var uid = this.getUID();
+    if (!this._initialized || !this._db || !uid) return [];
     try {
-      var snapshot = await this._db.ref('users/' + code + '/activities').once('value');
+      var snapshot = await this._db.ref('users/' + uid + '/activities').once('value');
       if (!snapshot.exists()) return [];
       var data = snapshot.val();
       var activities = [];
@@ -111,11 +149,12 @@ const Cloud = {
   },
 
   // ========== DELETE ACTIVITY ==========
-  async deleteActivity(code, activityDate) {
-    if (!this._initialized || !this._db) return false;
+  async deleteActivity(activityDate) {
+    var uid = this.getUID();
+    if (!this._initialized || !this._db || !uid) return false;
     try {
       var actId = 'act_' + new Date(activityDate).getTime();
-      await this._db.ref('users/' + code + '/activities/' + actId).remove();
+      await this._db.ref('users/' + uid + '/activities/' + actId).remove();
       console.log('☁️ Activity deleted');
       return true;
     } catch (e) {
@@ -124,22 +163,12 @@ const Cloud = {
     }
   },
 
-  // ========== CHECK IF CODE EXISTS ==========
-  async codeExists(code) {
-    if (!this._initialized || !this._db) return false;
-    try {
-      var snapshot = await this._db.ref('users/' + code.toUpperCase()).once('value');
-      return snapshot.exists();
-    } catch (e) {
-      return false;
-    }
-  },
-
   // ========== FULL SYNC: Cloud → Local ==========
-  async syncFromCloud(code) {
-    if (!this._initialized) return false;
+  async syncFromCloud() {
+    var uid = this.getUID();
+    if (!this._initialized || !uid) return false;
     try {
-      var profile = await this.loadProfile(code);
+      var profile = await this.loadProfile();
       if (!profile) return false;
 
       // Restore profile locally
@@ -149,10 +178,9 @@ const Cloud = {
       if (profile.birthDate) DB.setSetting('birthDate', profile.birthDate);
       if (profile.weeklyGoal) DB.setSetting('weeklyGoal', profile.weeklyGoal);
       DB.setSetting('onboarded', true);
-      DB.setSetting('recoveryCode', code);
 
       // Load activities from cloud
-      var cloudActivities = await this.loadActivities(code);
+      var cloudActivities = await this.loadActivities();
       for (var i = 0; i < cloudActivities.length; i++) {
         try {
           await DB.saveActivity(cloudActivities[i]);

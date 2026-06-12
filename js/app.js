@@ -18,7 +18,6 @@ const App = {
   async init() {
     try {
       await DB.init();
-      console.log('✅ IndexedDB initialized');
     } catch (e) {
       console.error('❌ IndexedDB failed:', e);
     }
@@ -30,12 +29,10 @@ const App = {
       console.warn('Cloud init failed:', e);
     }
 
-    // Force restore settings from IndexedDB/cookies
+    // Restore local settings
     try {
       await DB.restoreSettings();
-    } catch (e) {
-      console.warn('Settings restore failed:', e);
-    }
+    } catch (e) {}
 
     try {
       this.setupNavigation();
@@ -45,60 +42,18 @@ const App = {
       console.error('❌ Setup failed:', e);
     }
 
-    // Storage diagnostic - shows what survived
-    var diag = await this._storageDiag();
-    console.log('🔍 STORAGE DIAG:', diag);
+    // Check Firebase Auth state
+    var user = await Cloud.waitForAuth();
 
-    // Always run onboarding check
-    try {
-      var hasOnboarded = DB.getSetting('onboarded', false);
-      if (hasOnboarded) {
-        this.navigateTo('home');
-      } else {
-        this.navigateTo('onboarding');
-        // Show diagnostic on onboarding page
-        this._showDiagBanner(diag);
-      }
-    } catch (e) {
-      console.error('❌ Navigation failed:', e);
+    if (user) {
+      // User is logged in — sync from cloud
+      console.log('✅ User logged in:', user.displayName);
+      await Cloud.syncFromCloud();
+      this.navigateTo('home');
+    } else {
+      // No auth — show login screen
       this.navigateTo('onboarding');
     }
-  },
-
-  async _storageDiag() {
-    var result = { ls: '❌', idb: '❌', cookie: '❌', cache: '❌' };
-    // localStorage
-    try {
-      var lsVal = localStorage.getItem('runtracker_onboarded');
-      if (lsVal !== null) result.ls = '✅';
-    } catch(e) {}
-    // IndexedDB settings
-    try {
-      if (DB._db) {
-        var val = await DB._getSettingIDB('onboarded');
-        if (val !== undefined) result.idb = '✅';
-      }
-    } catch(e) {}
-    // Cookie
-    try {
-      var cv = DB._getCookie('onboarded');
-      if (cv !== undefined) result.cookie = '✅';
-    } catch(e) {}
-    // Cache API
-    try {
-      var cache = await caches.open('runtracker-settings');
-      var resp = await cache.match('settings.json');
-      if (resp) result.cache = '✅';
-    } catch(e) {}
-    return result;
-  },
-
-  _showDiagBanner(diag) {
-    var el = document.createElement('div');
-    el.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:8px 12px;background:#1a1a1a;border-bottom:1px solid #333;font-size:11px;color:#aaa;z-index:9999;font-family:monospace;';
-    el.innerHTML = '🔍 Storage: LS=' + diag.ls + ' IDB=' + diag.idb + ' Cookie=' + diag.cookie + ' Cache=' + diag.cache;
-    document.body.appendChild(el);
-    setTimeout(function(){ el.style.display='none'; }, 15000);
   },
 
   // ========== NAVIGATION ==========
@@ -173,8 +128,51 @@ const App = {
     var paceLabel = document.getElementById('record-pace-label');
     if (paceLabel) paceLabel.textContent = sport.paceLabel;
   },
+  // ========== GOOGLE AUTH ==========
+  async loginWithGoogle() {
+    var errorEl = document.getElementById('login-error');
+    try {
+      errorEl.style.display = 'none';
+      var btn = document.getElementById('btn-google-login');
+      btn.disabled = true;
+      btn.textContent = 'Entrando...';
 
-  // ========== ONBOARDING ==========
+      var user = await Cloud.loginWithGoogle();
+
+      // Check if user has existing profile in cloud
+      var profile = await Cloud.loadProfile();
+      if (profile && profile.name) {
+        // Existing user — restore everything
+        await Cloud.syncFromCloud();
+        this.navigateTo('home');
+        UI.showToast('Bem-vindo de volta, ' + profile.name + '! 🎉');
+      } else {
+        // New user — show profile form
+        document.getElementById('onboarding-step-login').style.display = 'none';
+        document.getElementById('onboarding-step-profile').style.display = 'block';
+        // Pre-fill name from Google account
+        var nameInput = document.getElementById('onboard-name');
+        if (user.displayName) {
+          nameInput.value = user.displayName;
+        }
+      }
+    } catch (e) {
+      console.error('Google login error:', e);
+      var btn = document.getElementById('btn-google-login');
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Entrar com Google';
+      if (e.code === 'auth/popup-blocked') {
+        errorEl.textContent = 'Popup bloqueado. Permita popups para este site.';
+      } else if (e.code === 'auth/popup-closed-by-user') {
+        errorEl.textContent = 'Login cancelado.';
+      } else {
+        errorEl.textContent = 'Erro ao fazer login. Tente novamente.';
+      }
+      errorEl.style.display = 'block';
+    }
+  },
+
+  // ========== ONBOARDING (profile completion) ==========
   async completeOnboarding() {
     try {
       var name = (document.getElementById('onboard-name').value || '').trim();
@@ -188,75 +186,22 @@ const App = {
         return;
       }
 
-      // Generate recovery code
-      var code = Cloud.generateCode(name);
-
       // Save locally
       DB.setSetting('name', name);
       DB.setSetting('onboarded', true);
-      DB.setSetting('recoveryCode', code);
       if (weight > 0) DB.setSetting('weight', weight);
       if (height > 0) DB.setSetting('height', height);
       if (birth) DB.setSetting('birthDate', birth);
 
       // Save to cloud
       var profileData = { name: name, weight: weight, height: height, birthDate: birth, weeklyGoal: 10 };
-      await Cloud.saveProfile(code, profileData);
+      await Cloud.saveProfile(profileData);
 
-      // Show recovery code to user
-      document.getElementById('recovery-code-show').textContent = code;
-      document.getElementById('recovery-display').style.display = 'flex';
-      document.getElementById('onboarding-step-1').style.display = 'none';
-
+      this.navigateTo('home');
+      UI.showToast('Bem-vindo, ' + name + '! 🎉');
     } catch (e) {
       console.error('Onboarding error:', e);
-      UI.showToast('Erro ao criar conta. Tente novamente.');
-    }
-  },
-
-  dismissRecovery() {
-    document.getElementById('recovery-display').style.display = 'none';
-    this.navigateTo('home');
-    var name = DB.getSetting('name', 'Corredor');
-    UI.showToast('Bem-vindo, ' + name + '! 🎉');
-  },
-
-  showRecovery() {
-    document.getElementById('recovery-modal').style.display = 'flex';
-    document.getElementById('onboarding-step-1').style.display = 'none';
-    setTimeout(function() {
-      document.getElementById('recovery-code-input').focus();
-    }, 300);
-  },
-
-  hideRecovery() {
-    document.getElementById('recovery-modal').style.display = 'none';
-    document.getElementById('onboarding-step-1').style.display = 'block';
-    document.getElementById('recovery-error').style.display = 'none';
-  },
-
-  async recoverAccount() {
-    var code = (document.getElementById('recovery-code-input').value || '').trim().toUpperCase();
-    var errorEl = document.getElementById('recovery-error');
-
-    if (!code || code.length < 4) {
-      errorEl.textContent = 'Digite um código válido (ex: LUCA-1234)';
-      errorEl.style.display = 'block';
-      return;
-    }
-
-    errorEl.style.display = 'none';
-    UI.showToast('Buscando dados...');
-
-    var success = await Cloud.syncFromCloud(code);
-    if (success) {
-      document.getElementById('recovery-modal').style.display = 'none';
-      this.navigateTo('home');
-      var name = DB.getSetting('name', 'Corredor');
-      UI.showToast('Bem-vindo de volta, ' + name + '! 🎉');
-    } else {
-      errorEl.textContent = '❌ Código não encontrado. Verifique e tente novamente.';
-      errorEl.style.display = 'block';
+      UI.showToast('Erro ao salvar perfil.');
     }
   },
 
@@ -449,12 +394,9 @@ const App = {
       console.log(`✅ Activity saved with ID: ${id}`);
 
       // Sync to cloud
-      var code = DB.getSetting('recoveryCode', null);
-      if (code) {
-        Cloud.saveActivity(code, activity).then(function() {
-          console.log('☁️ Activity synced to cloud');
-        });
-      }
+      Cloud.saveActivity(activity).then(function() {
+        console.log('☁️ Activity synced to cloud');
+      });
     } catch (e) {
       console.error('❌ Failed to save activity:', e);
       UI.showToast('Erro ao salvar atividade');
