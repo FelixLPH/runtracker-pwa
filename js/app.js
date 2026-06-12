@@ -166,8 +166,10 @@ const App = {
         errorEl.textContent = 'Login cancelado.';
       } else if (e.code === 'auth/unauthorized-domain') {
         errorEl.textContent = 'Domínio não autorizado. Contate o suporte.';
+      } else if (e.code === 'auth/operation-not-supported-in-this-environment') {
+        errorEl.textContent = 'Google não disponível neste navegador. Use "Criar conta com email" abaixo.';
       } else {
-        errorEl.textContent = 'Erro: ' + (e.message || 'Tente novamente.');
+        errorEl.textContent = 'Google indisponível. Use a opção "Criar conta com email".';
       }
       errorEl.style.display = 'block';
     }

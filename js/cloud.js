@@ -43,15 +43,28 @@ const Cloud = {
     if (!this._initialized || !this._auth) throw new Error('Firebase not initialized');
     var provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    // Try popup first (works on most mobile), fallback to redirect
+    // Set persistence to SESSION to work around Samsung browser restrictions
+    try {
+      await this._auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    } catch (e) {
+      console.warn('Could not set persistence:', e);
+    }
+    // Try popup first, fallback to redirect
     try {
       var result = await this._auth.signInWithPopup(provider);
       this._user = result.user;
       return this._user;
     } catch (popupErr) {
-      if (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/operation-not-supported-in-this-environment') {
-        await this._auth.signInWithRedirect(provider);
-        return null; // Page will reload
+      console.warn('Popup failed:', popupErr.code);
+      if (popupErr.code === 'auth/popup-blocked' || 
+          popupErr.code === 'auth/operation-not-supported-in-this-environment') {
+        // Try redirect as last resort
+        try {
+          await this._auth.signInWithRedirect(provider);
+          return null;
+        } catch (redirErr) {
+          throw redirErr;
+        }
       }
       throw popupErr;
     }
