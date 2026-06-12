@@ -176,21 +176,7 @@ const App = {
   },
 
   // ========== EMAIL AUTH ==========
-  _emailMode: 'signup', // 'signup' or 'login'
-
-  showEmailForm(mode) {
-    this._emailMode = mode || 'signup';
-    document.getElementById('onboarding-step-login').style.display = 'none';
-    document.getElementById('onboarding-step-email').style.display = 'block';
-    document.getElementById('email-error').style.display = 'none';
-    this._updateEmailFormUI();
-    setTimeout(function() { document.getElementById('auth-email').focus(); }, 300);
-  },
-
-  hideEmailForm() {
-    document.getElementById('onboarding-step-email').style.display = 'none';
-    document.getElementById('onboarding-step-login').style.display = 'block';
-  },
+  _emailMode: 'signup',
 
   toggleEmailMode() {
     this._emailMode = this._emailMode === 'signup' ? 'login' : 'signup';
@@ -199,8 +185,8 @@ const App = {
 
   _updateEmailFormUI() {
     var isLogin = this._emailMode === 'login';
-    document.getElementById('email-form-title').textContent = isLogin ? 'Entrar 👋' : 'Criar conta 📧';
-    document.getElementById('email-form-subtitle').textContent = isLogin ? 'Use seu email e senha' : 'Preencha para criar sua conta';
+    document.getElementById('email-form-title').textContent = isLogin ? 'Entrar 👋' : 'Criar conta 🏃';
+    document.getElementById('email-form-subtitle').textContent = isLogin ? 'Use seu email e senha' : 'Crie sua conta para salvar seus dados na nuvem.';
     document.getElementById('btn-email-submit').innerHTML = isLogin ? '🔓 Entrar' : '🚀 Criar conta';
     document.getElementById('email-toggle').innerHTML = isLogin
       ? 'Não tem conta? <span class="accent" onclick="App.toggleEmailMode()">Criar conta</span>'
