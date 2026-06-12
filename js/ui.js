@@ -7,76 +7,139 @@ const UI = {
 
   // ========== HOME PAGE ==========
   async renderHome() {
-    let activities = [];
+    var activities = [];
     try {
       activities = await DB.getAllActivities();
     } catch (e) {
       console.warn('Could not load activities:', e);
     }
-    const name = DB.getSetting('name', 'Corredor');
+    var name = DB.getSetting('name', 'Corredor');
+    var weeklyGoal = DB.getSetting('weeklyGoal', 10);
 
-    const hour = new Date().getHours();
-    let greeting;
+    var hour = new Date().getHours();
+    var greeting;
     if (hour < 6) greeting = 'Boa madrugada';
     else if (hour < 12) greeting = 'Bom dia';
     else if (hour < 18) greeting = 'Boa tarde';
     else greeting = 'Boa noite';
 
-    // Weekly stats
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const weeklyActivities = activities.filter(a => new Date(a.date) >= weekAgo);
-    const weeklyDistance = weeklyActivities.reduce((sum, a) => sum + a.distance, 0);
-    const weeklyTime = weeklyActivities.reduce((sum, a) => sum + a.duration, 0);
-    const weeklyRuns = weeklyActivities.length;
+    // Motivational quotes
+    var quotes = [
+      { emoji: '💪', text: 'A dor é temporária, o orgulho é para sempre.' },
+      { emoji: '🔥', text: 'Cada passo te leva mais perto do seu objetivo.' },
+      { emoji: '🏆', text: 'Você é mais forte do que imagina.' },
+      { emoji: '⚡', text: 'Não pare quando estiver cansado, pare quando terminar.' },
+      { emoji: '🎯', text: 'Disciplina é escolher entre o que você quer agora e o que você mais quer.' },
+      { emoji: '🌟', text: 'O único treino ruim é aquele que não aconteceu.' },
+      { emoji: '🚀', text: 'Seu corpo consegue. É a sua mente que precisa convencer.' },
+      { emoji: '💎', text: 'Resultados acontecem com o tempo, não da noite pro dia.' },
+      { emoji: '🏃', text: 'Corra quando puder, ande se precisar, mas nunca desista.' },
+      { emoji: '🦁', text: 'Levante. Vista-se. Apareça. Nunca desista.' }
+    ];
+    var quote = quotes[Math.floor(Math.random() * quotes.length)];
 
-    const container = document.getElementById('page-home');
-    container.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h1 class="greeting">${greeting}, <span class="accent">${name}</span></h1>
-          <p class="subtitle">Vamos correr hoje?</p>
-        </div>
-        <div class="header-icon" onclick="App.navigateTo('profile')">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-        </div>
-      </div>
+    // Weekly data (Mon-Sun)
+    var now = new Date();
+    var todayDow = now.getDay(); // 0=Sun, 1=Mon...
+    var mondayOffset = todayDow === 0 ? -6 : 1 - todayDow;
+    var monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
 
-      <div class="weekly-summary glass-card">
-        <h3 class="card-title">📊 Esta semana</h3>
-        <div class="stats-row">
-          <div class="mini-stat">
-            <span class="mini-stat-value">${Stats.formatDistance(weeklyDistance)}</span>
-            <span class="mini-stat-label">km</span>
-          </div>
-          <div class="mini-stat">
-            <span class="mini-stat-value">${weeklyRuns}</span>
-            <span class="mini-stat-label">corridas</span>
-          </div>
-          <div class="mini-stat">
-            <span class="mini-stat-value">${Stats.formatDuration(weeklyTime)}</span>
-            <span class="mini-stat-label">tempo</span>
-          </div>
-        </div>
-      </div>
+    var dayNames = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+    var dailyDist = [0, 0, 0, 0, 0, 0, 0];
+    var weeklyActivities = [];
 
-      <div class="section-header">
-        <h2>Atividades recentes</h2>
-      </div>
+    for (var i = 0; i < activities.length; i++) {
+      var aDate = new Date(activities[i].date);
+      if (aDate >= monday) {
+        var dayIdx = aDate.getDay();
+        var chartIdx = dayIdx === 0 ? 6 : dayIdx - 1; // Mon=0, Sun=6
+        dailyDist[chartIdx] += activities[i].distance;
+        weeklyActivities.push(activities[i]);
+      }
+    }
 
-      <div class="activities-list" id="home-activities">
-        ${activities.length === 0 ? `
-          <div class="empty-state">
-            <div class="empty-icon">🏃</div>
-            <p>Nenhuma atividade ainda</p>
-            <p class="text-muted">Toque em "Gravar" para começar!</p>
-          </div>
-        ` : activities.slice(0, 5).map(a => this._renderActivityCard(a)).join('')}
-      </div>
-    `;
+    var weeklyDistance = weeklyActivities.reduce(function(s, a) { return s + a.distance; }, 0);
+    var weeklyTime = weeklyActivities.reduce(function(s, a) { return s + a.duration; }, 0);
+    var weeklyCals = weeklyActivities.reduce(function(s, a) { return s + (a.calories || 0); }, 0);
+    var weeklyCount = weeklyActivities.length;
+
+    // Chart bars
+    var maxDist = Math.max.apply(null, dailyDist.concat([0.1]));
+    var todayIdx = todayDow === 0 ? 6 : todayDow - 1;
+    var barsHtml = '';
+    for (var d = 0; d < 7; d++) {
+      var pct = Math.round((dailyDist[d] / maxDist) * 100);
+      var isToday = d === todayIdx;
+      var hasData = dailyDist[d] > 0;
+      var barVal = hasData ? dailyDist[d].toFixed(1).replace('.', ',') : '';
+      barsHtml += '<div class="chart-bar-col">' +
+        '<span class="chart-bar-value">' + barVal + '</span>' +
+        '<div class="chart-bar' + (hasData ? ' has-data' : '') + (isToday ? ' today' : '') +
+        '" style="height: ' + (hasData ? Math.max(pct, 8) : 3) + '%"></div>' +
+        '<span class="chart-bar-day' + (isToday ? ' today' : '') + '">' + dayNames[d] + '</span>' +
+        '</div>';
+    }
+
+    // Goal progress
+    var goalPct = weeklyGoal > 0 ? Math.min(Math.round((weeklyDistance / weeklyGoal) * 100), 100) : 0;
+    var goalCompleted = goalPct >= 100;
+    var goalRemaining = Math.max(0, weeklyGoal - weeklyDistance);
+
+    var container = document.getElementById('page-home');
+    container.innerHTML =
+      '<div class="page-header">' +
+        '<div>' +
+          '<h1 class="greeting">' + greeting + ', <span class="accent">' + name + '</span></h1>' +
+          '<p class="subtitle">Vamos treinar hoje?</p>' +
+        '</div>' +
+        '<div class="header-icon" onclick="App.navigateTo(\'profile\')">' +
+          '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>' +
+            '<circle cx="12" cy="7" r="4"/>' +
+          '</svg>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="motivation-card">' +
+        '<span class="motivation-emoji">' + quote.emoji + '</span>' +
+        '<span class="motivation-text">' + quote.text + '</span>' +
+      '</div>' +
+
+      '<div class="weekly-chart">' +
+        '<h3 class="card-title">📊 Esta semana</h3>' +
+        '<div class="chart-bars">' + barsHtml + '</div>' +
+      '</div>' +
+
+      '<div class="goal-card">' +
+        '<div class="goal-header">' +
+          '<span class="goal-title">🎯 Meta semanal</span>' +
+          '<span class="goal-value"><span class="accent">' + Stats.formatDistance(weeklyDistance) + '</span> / ' + weeklyGoal + ' km</span>' +
+        '</div>' +
+        '<div class="goal-progress-bar">' +
+          '<div class="goal-progress-fill' + (goalCompleted ? ' completed' : '') + '" style="width: ' + goalPct + '%"></div>' +
+        '</div>' +
+        '<span class="goal-subtitle">' + (goalCompleted ? '✅ Meta alcançada!' : 'Faltam ' + Stats.formatDistance(goalRemaining) + ' km') + '</span>' +
+      '</div>' +
+
+      '<div class="summary-grid">' +
+        '<div class="summary-item"><span class="summary-item-icon">📏</span><span class="summary-item-value">' + Stats.formatDistance(weeklyDistance) + ' <small>km</small></span><span class="summary-item-label">Distância</span></div>' +
+        '<div class="summary-item"><span class="summary-item-icon">🏅</span><span class="summary-item-value">' + weeklyCount + '</span><span class="summary-item-label">Atividades</span></div>' +
+        '<div class="summary-item"><span class="summary-item-icon">⏱️</span><span class="summary-item-value">' + Stats.formatDuration(weeklyTime) + '</span><span class="summary-item-label">Tempo</span></div>' +
+        '<div class="summary-item"><span class="summary-item-icon">🔥</span><span class="summary-item-value">' + weeklyCals + ' <small>kcal</small></span><span class="summary-item-label">Calorias</span></div>' +
+      '</div>' +
+
+      '<div class="section-header">' +
+        '<h2>Atividades recentes</h2>' +
+        (activities.length > 3 ? '<span class="view-all" onclick="App.navigateTo(\'history\')">Ver todas →</span>' : '') +
+      '</div>' +
+
+      '<div class="activities-list" id="home-activities">' +
+        (activities.length === 0 ?
+          '<div class="empty-state"><div class="empty-icon">🏃</div><p>Nenhuma atividade ainda</p><p class="text-muted">Toque em "Gravar" para começar!</p></div>'
+          : activities.slice(0, 3).map(function(a) { return UI._renderActivityCard(a); }).join('')) +
+      '</div>';
   },
 
   _renderActivityCard(activity) {
@@ -200,48 +263,156 @@ const UI = {
   },
 
   // ========== HISTORY PAGE ==========
+  _historyFilters: { sport: 'all', period: 'all' },
+
   async renderHistory() {
-    let activities = [];
+    var allActivities = [];
     try {
-      activities = await DB.getAllActivities();
+      allActivities = await DB.getAllActivities();
     } catch (e) {
       console.warn('Could not load activities:', e);
     }
-    const container = document.getElementById('page-history');
 
-    const totalDistance = activities.reduce((s, a) => s + a.distance, 0);
-    const totalTime = activities.reduce((s, a) => s + a.duration, 0);
+    var sportFilter = this._historyFilters.sport;
+    var periodFilter = this._historyFilters.period;
 
-    container.innerHTML = `
-      <div class="page-header">
-        <h1>Histórico</h1>
-      </div>
+    // Apply sport filter
+    var filtered = allActivities;
+    if (sportFilter !== 'all') {
+      filtered = filtered.filter(function(a) { return (a.sport || 'run') === sportFilter; });
+    }
 
-      <div class="total-banner glass-card">
-        <div class="mini-stat">
-          <span class="mini-stat-value">${activities.length}</span>
-          <span class="mini-stat-label">corridas</span>
-        </div>
-        <div class="mini-stat">
-          <span class="mini-stat-value">${Stats.formatDistance(totalDistance)}</span>
-          <span class="mini-stat-label">km total</span>
-        </div>
-        <div class="mini-stat">
-          <span class="mini-stat-value">${Stats.formatDuration(totalTime)}</span>
-          <span class="mini-stat-label">tempo total</span>
-        </div>
-      </div>
+    // Apply period filter
+    var now = new Date();
+    if (periodFilter !== 'all') {
+      var cutoff = new Date();
+      if (periodFilter === 'week') cutoff.setDate(now.getDate() - 7);
+      else if (periodFilter === 'month') cutoff.setMonth(now.getMonth() - 1);
+      else if (periodFilter === '3months') cutoff.setMonth(now.getMonth() - 3);
+      filtered = filtered.filter(function(a) { return new Date(a.date) >= cutoff; });
+    }
 
-      <div class="activities-list">
-        ${activities.length === 0 ? `
-          <div class="empty-state">
-            <div class="empty-icon">📋</div>
-            <p>Nenhuma atividade registrada</p>
-            <p class="text-muted">Suas corridas aparecerão aqui</p>
-          </div>
-        ` : activities.map(a => this._renderActivityCard(a)).join('')}
-      </div>
-    `;
+    // Totals
+    var totalDist = filtered.reduce(function(s, a) { return s + a.distance; }, 0);
+    var totalTime = filtered.reduce(function(s, a) { return s + a.duration; }, 0);
+    var totalCals = filtered.reduce(function(s, a) { return s + (a.calories || 0); }, 0);
+
+    // Personal records (from ALL activities, not filtered)
+    var bestDist = null, bestPace = null, bestDuration = null;
+    for (var i = 0; i < allActivities.length; i++) {
+      var a = allActivities[i];
+      if (!bestDist || a.distance > bestDist.distance) bestDist = a;
+      if (a.distance > 0.1 && (!bestPace || a.pace < bestPace.pace)) bestPace = a;
+      if (!bestDuration || a.duration > bestDuration.duration) bestDuration = a;
+    }
+
+    // Group by month
+    var months = {};
+    var monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    for (var j = 0; j < filtered.length; j++) {
+      var date = new Date(filtered[j].date);
+      var key = date.getFullYear() + '-' + (date.getMonth() < 10 ? '0' : '') + date.getMonth();
+      var label = monthNames[date.getMonth()] + ' ' + date.getFullYear();
+      if (!months[key]) months[key] = { label: label, activities: [] };
+      months[key].activities.push(filtered[j]);
+    }
+
+    // Build sport filter pills
+    var sportPills = [
+      { key: 'all', label: 'Todos', icon: '' },
+      { key: 'run', label: 'Corrida', icon: '🏃 ' },
+      { key: 'cycle', label: 'Ciclismo', icon: '🚴 ' },
+      { key: 'walk', label: 'Caminhada', icon: '🚶 ' }
+    ];
+    var sportPillsHtml = '';
+    for (var s = 0; s < sportPills.length; s++) {
+      var sp = sportPills[s];
+      sportPillsHtml += '<button class="filter-pill' + (sportFilter === sp.key ? ' active' : '') +
+        '" onclick="UI.setHistoryFilter(\'sport\',\'' + sp.key + '\')">' + sp.icon + sp.label + '</button>';
+    }
+
+    // Build period filter pills
+    var periodPills = [
+      { key: 'week', label: '7 dias' },
+      { key: 'month', label: '30 dias' },
+      { key: '3months', label: '3 meses' },
+      { key: 'all', label: 'Tudo' }
+    ];
+    var periodPillsHtml = '';
+    for (var p = 0; p < periodPills.length; p++) {
+      var pp = periodPills[p];
+      periodPillsHtml += '<button class="filter-pill' + (periodFilter === pp.key ? ' active' : '') +
+        '" onclick="UI.setHistoryFilter(\'period\',\'' + pp.key + '\')">' + pp.label + '</button>';
+    }
+
+    // Records HTML
+    var recordsHtml = '';
+    if (allActivities.length > 0) {
+      recordsHtml = '<div class="records-section">' +
+        '<div class="records-title">🏆 Recordes pessoais</div>' +
+        '<div class="records-scroll">';
+      if (bestDist) {
+        recordsHtml += '<div class="record-card"><div class="record-card-icon">📏</div>' +
+          '<div class="record-card-value">' + Stats.formatDistance(bestDist.distance) + ' km</div>' +
+          '<div class="record-card-label">Maior distância</div></div>';
+      }
+      if (bestPace && bestPace.pace && bestPace.pace !== '--:--') {
+        var paceLbl = (bestPace.sport === 'cycle') ? 'Maior velocidade' : 'Melhor ritmo';
+        recordsHtml += '<div class="record-card"><div class="record-card-icon">⚡</div>' +
+          '<div class="record-card-value">' + bestPace.pace + ' ' + (bestPace.paceLabel || '/km') + '</div>' +
+          '<div class="record-card-label">' + paceLbl + '</div></div>';
+      }
+      if (bestDuration) {
+        recordsHtml += '<div class="record-card"><div class="record-card-icon">⏱️</div>' +
+          '<div class="record-card-value">' + Stats.formatDuration(bestDuration.duration) + '</div>' +
+          '<div class="record-card-label">Maior duração</div></div>';
+      }
+      recordsHtml += '</div></div>';
+    }
+
+    // Activities grouped by month
+    var activitiesHtml = '';
+    var monthKeys = Object.keys(months).sort().reverse();
+    if (monthKeys.length === 0) {
+      activitiesHtml = '<div class="empty-state"><div class="empty-icon">📋</div>' +
+        '<p>Nenhuma atividade encontrada</p>' +
+        '<p class="text-muted">Ajuste os filtros ou grave uma atividade</p></div>';
+    } else {
+      for (var m = 0; m < monthKeys.length; m++) {
+        var month = months[monthKeys[m]];
+        activitiesHtml += '<div class="month-header">' + month.label + '</div>';
+        activitiesHtml += '<div class="activities-list">';
+        for (var k = 0; k < month.activities.length; k++) {
+          activitiesHtml += this._renderActivityCard(month.activities[k]);
+        }
+        activitiesHtml += '</div>';
+      }
+    }
+
+    var container = document.getElementById('page-history');
+    container.innerHTML =
+      '<div class="page-header"><h1>Histórico</h1></div>' +
+
+      '<div class="filter-section">' +
+        '<div class="filter-row">' + sportPillsHtml + '</div>' +
+        '<div class="filter-row">' + periodPillsHtml + '</div>' +
+      '</div>' +
+
+      '<div class="history-stats">' +
+        '<div class="history-stat-item"><span class="history-stat-value">' + filtered.length + '</span><span class="history-stat-label">Atividades</span></div>' +
+        '<div class="history-stat-item"><span class="history-stat-value">' + Stats.formatDistance(totalDist) + '</span><span class="history-stat-label">Km</span></div>' +
+        '<div class="history-stat-item"><span class="history-stat-value">' + Stats.formatDuration(totalTime) + '</span><span class="history-stat-label">Tempo</span></div>' +
+        '<div class="history-stat-item"><span class="history-stat-value">' + totalCals + '</span><span class="history-stat-label">Kcal</span></div>' +
+      '</div>' +
+
+      recordsHtml +
+      activitiesHtml;
+  },
+
+  setHistoryFilter(type, value) {
+    this._historyFilters[type] = value;
+    this.renderHistory();
   },
 
   // ========== ACTIVITY DETAIL PAGE ==========
@@ -408,6 +579,11 @@ const UI = {
           <input type="date" id="profile-birth" class="input-field"
                  value="${birthDate}">
         </div>
+        <div class="input-group">
+          <label for="profile-goal">🎯 Meta semanal (km)</label>
+          <input type="number" id="profile-goal" class="input-field"
+                 value="${DB.getSetting('weeklyGoal', 10)}" placeholder="10" min="1" max="500" step="1">
+        </div>
         <button class="btn-primary" onclick="UI.saveProfile()">
           💾 Salvar perfil
         </button>
@@ -484,11 +660,13 @@ const UI = {
     const weight = parseFloat(document.getElementById('profile-weight').value);
     const height = parseFloat(document.getElementById('profile-height').value);
     const birthDate = document.getElementById('profile-birth').value;
+    const goal = parseInt(document.getElementById('profile-goal').value) || 10;
 
     if (name) DB.setSetting('name', name);
     if (weight && weight > 0) DB.setSetting('weight', weight);
     if (height && height > 0) DB.setSetting('height', height);
     if (birthDate) DB.setSetting('birthDate', birthDate);
+    DB.setSetting('weeklyGoal', goal);
 
     this.showToast('Perfil salvo com sucesso! ✅');
   },
