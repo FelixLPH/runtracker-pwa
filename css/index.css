@@ -1,8 +1,8 @@
 /* ============================================
-   RunTracker PWA — Design System & Base Styles
+   PACEMEET — Design System & Base Styles
    ============================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
 /* === RESET === */
 *, *::before, *::after {
@@ -12,20 +12,21 @@
 }
 
 :root {
-  --bg-primary: #0d0d0d;
-  --bg-secondary: #1a1a1a;
-  --bg-tertiary: #2a2a2a;
-  --bg-elevated: #333333;
-  --accent: #FC4C02;
-  --accent-hover: #E8450A;
-  --accent-glow: rgba(252, 76, 2, 0.3);
-  --accent-subtle: rgba(252, 76, 2, 0.1);
+  --bg-primary: #111827;
+  --bg-secondary: #1E2536;
+  --bg-tertiary: #2D3548;
+  --bg-elevated: #374151;
+  --accent: #7C3AED;
+  --accent-hover: #6D28D9;
+  --accent-glow: rgba(124, 58, 237, 0.35);
+  --accent-subtle: rgba(124, 58, 237, 0.12);
+  --accent-secondary: #2563EB;
   --text-primary: #FFFFFF;
-  --text-secondary: #A0A0A0;
-  --text-muted: #666666;
-  --success: #00C853;
-  --warning: #FFD600;
-  --danger: #FF1744;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
@@ -54,7 +55,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   height: 100%;

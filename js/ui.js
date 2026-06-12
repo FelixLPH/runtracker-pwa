@@ -1,5 +1,5 @@
 // ============================================================
-// RunTracker — UI Rendering Module
+// PACEMEET — UI Rendering Module
 // Handles all DOM rendering and user interactions
 // ============================================================
 
@@ -705,7 +705,7 @@ const UI = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `runtracker-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `pacemeet-export-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

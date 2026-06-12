@@ -1,15 +1,15 @@
 {
-  "name": "RunTracker — App de Corrida",
-  "short_name": "RunTracker",
-  "description": "App de corrida com GPS. Registre distância, ritmo e rota em tempo real.",
+  "name": "PACEMEET — Conectando pelo ritmo",
+  "short_name": "PACEMEET",
+  "description": "Conectando pessoas através do mesmo ritmo. Registre suas corridas, acompanhe distância, ritmo e rota em tempo real.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0d0d0d",
-  "theme_color": "#FC4C02",
+  "background_color": "#111827",
+  "theme_color": "#7C3AED",
   "lang": "pt-BR",
-  "categories": ["fitness", "health", "sports"],
+  "categories": ["fitness", "health", "sports", "social"],
   "icons": [
     {
       "src": "icons/icon-192x192.png",

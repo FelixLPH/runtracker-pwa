@@ -1,5 +1,5 @@
 // ============================================================
-// RunTracker — Main Application Module
+// PACEMEET — Main Application Module
 // Router, recording logic, and app initialization
 // ============================================================
 

@@ -1,5 +1,5 @@
 /* ============================================
-   RunTracker PWA — Onboarding Styles
+   PACEMEET — Onboarding Styles
    ============================================ */
 
 /* === ONBOARDING PAGE === */
@@ -47,7 +47,7 @@
 
 @keyframes logo-pulse {
   0%, 100% { box-shadow: 0 0 30px var(--accent-glow); transform: scale(1); }
-  50% { box-shadow: 0 0 50px rgba(252, 76, 2, 0.4); transform: scale(1.03); }
+  50% { box-shadow: 0 0 50px rgba(124, 58, 237, 0.5); transform: scale(1.03); }
 }
 
 .onboarding-title {
@@ -179,7 +179,7 @@ input[type="date"].input-field::-webkit-calendar-picker-indicator {
   border-radius: var(--radius-xl);
   font-size: 1rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', sans-serif;
   cursor: pointer;
   transition: all var(--transition-normal);
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
@@ -256,7 +256,7 @@ input[type="date"].input-field::-webkit-calendar-picker-indicator {
   border-radius: var(--radius-xl);
   font-size: 1rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', sans-serif;
   cursor: pointer;
   transition: all var(--transition-normal);
 }
@@ -302,7 +302,7 @@ input[type="date"].input-field::-webkit-calendar-picker-indicator {
   border: none;
   color: var(--text-muted);
   font-size: 0.9rem;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Poppins', sans-serif;
   cursor: pointer;
   margin-top: var(--space-lg);
   padding: var(--space-sm);
