@@ -1,0 +1,166 @@
+/* ============================================
+   RunTracker PWA — Onboarding Styles
+   ============================================ */
+
+/* === ONBOARDING PAGE === */
+#page-onboarding {
+  padding: 0;
+  padding-bottom: 0 !important;
+  background: var(--bg-primary);
+}
+
+.onboarding {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-lg) var(--space-md);
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* --- Header / Logo --- */
+.onboarding-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: var(--space-2xl);
+  padding-bottom: var(--space-xl);
+}
+
+.onboarding-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.onboarding-logo-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-xl);
+  background: var(--accent-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 40px var(--accent-glow);
+  animation: logo-pulse 3s ease-in-out infinite;
+}
+
+@keyframes logo-pulse {
+  0%, 100% { box-shadow: 0 0 30px var(--accent-glow); transform: scale(1); }
+  50% { box-shadow: 0 0 50px rgba(252, 76, 2, 0.4); transform: scale(1.03); }
+}
+
+.onboarding-title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.onboarding-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+/* --- Form --- */
+.onboarding-form {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.onboarding-step {
+  animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.onboarding-step h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+}
+
+.onboarding-step .text-muted {
+  margin-bottom: var(--space-xl);
+}
+
+.input-row {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.input-row .input-group {
+  flex: 1;
+}
+
+/* Large CTA button */
+.btn-lg {
+  padding: 18px 24px;
+  font-size: 1.05rem;
+  border-radius: var(--radius-lg);
+  margin-top: var(--space-lg);
+}
+
+/* Privacy note */
+.onboarding-privacy {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+
+/* --- Splash / Loading Screen --- */
+#splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  transition: opacity 0.4s ease;
+}
+
+#splash-screen.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-xl);
+  background: var(--accent-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: logo-pulse 2s ease-in-out infinite;
+}
+
+.splash-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Date input fix for dark mode */
+input[type="date"].input-field {
+  color-scheme: dark;
+}
+
+input[type="date"].input-field::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
