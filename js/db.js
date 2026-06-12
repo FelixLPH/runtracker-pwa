@@ -1,14 +1,24 @@
 const DB = {
   _db: null,
   DB_NAME: 'RunTrackerDB',
-  DB_VERSION: 1,
+  DB_VERSION: 2,
   STORE_NAME: 'activities',
+  SETTINGS_STORE: 'settings',
 
   async init() {
     if (typeof indexedDB === 'undefined') {
       console.warn('IndexedDB not available');
       return;
     }
+
+    // Request persistent storage so browser doesn't evict our data
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        var granted = await navigator.storage.persist();
+        console.log(granted ? '✅ Persistent storage granted' : '⚠️ Persistent storage not granted');
+      }
+    } catch (e) { /* ignore */ }
+
     return new Promise(function(resolve, reject) {
       try {
         var request = indexedDB.open(DB.DB_NAME, DB.DB_VERSION);
@@ -19,8 +29,20 @@ const DB = {
             store.createIndex('date', 'date', { unique: false });
             store.createIndex('distance', 'distance', { unique: false });
           }
+          // New: settings store for persistent profile data
+          if (!db.objectStoreNames.contains(DB.SETTINGS_STORE)) {
+            db.createObjectStore(DB.SETTINGS_STORE, { keyPath: 'key' });
+          }
         };
-        request.onsuccess = function() { DB._db = request.result; resolve(); };
+        request.onsuccess = function() {
+          DB._db = request.result;
+          // Restore settings from IndexedDB → localStorage
+          DB.restoreSettings().then(function() {
+            // Also backup current localStorage → IndexedDB
+            DB._syncSettingsToIDB();
+            resolve();
+          });
+        };
         request.onerror = function() { console.warn('IndexedDB open failed'); resolve(); };
       } catch (e) {
         console.warn('IndexedDB error:', e);
@@ -29,6 +51,64 @@ const DB = {
     });
   },
 
+  // Sync existing localStorage settings into IndexedDB for backup
+  _syncSettingsToIDB() {
+    if (!this._db) return;
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var lsKey = localStorage.key(i);
+        if (lsKey && lsKey.startsWith('runtracker_')) {
+          var shortKey = lsKey.replace('runtracker_', '');
+          var val = localStorage.getItem(lsKey);
+          this._setSettingIDB(shortKey, val);
+        }
+      }
+    } catch (e) { /* localStorage might be blocked */ }
+  },
+
+  // Save a single setting to IndexedDB
+  _setSettingIDB(key, rawValue) {
+    if (!this._db) return;
+    try {
+      var tx = this._db.transaction(this.SETTINGS_STORE, 'readwrite');
+      var store = tx.objectStore(this.SETTINGS_STORE);
+      store.put({ key: key, value: rawValue });
+    } catch (e) { /* ignore */ }
+  },
+
+  // Restore all settings from IndexedDB → localStorage + memory cache
+  async restoreSettings() {
+    if (!this._db) return;
+    try {
+      var tx = this._db.transaction(this.SETTINGS_STORE, 'readonly');
+      var store = tx.objectStore(this.SETTINGS_STORE);
+      var req = store.getAll();
+      return new Promise(function(resolve) {
+        req.onsuccess = function() {
+          var items = req.result || [];
+          for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            // Restore to localStorage if missing
+            try {
+              if (localStorage.getItem('runtracker_' + item.key) === null) {
+                localStorage.setItem('runtracker_' + item.key, item.value);
+              }
+            } catch (e) { /* blocked */ }
+            // Restore to memory cache
+            try {
+              DB._settingsCache[item.key] = JSON.parse(item.value);
+            } catch (e) {
+              DB._settingsCache[item.key] = item.value;
+            }
+          }
+          resolve();
+        };
+        req.onerror = function() { resolve(); };
+      });
+    } catch (e) { return; }
+  },
+
+  // ========== ACTIVITIES ==========
   async saveActivity(data) {
     if (!this._db) { console.warn('DB not available'); return null; }
     return new Promise(function(resolve, reject) {
@@ -94,47 +174,35 @@ const DB = {
     });
   },
 
-  // In-memory fallback for when localStorage is blocked (incognito mode)
-  _memoryStore: {},
-  _useMemory: false,
-
-  _initStorage() {
-    try {
-      const testKey = '__runtracker_test__';
-      localStorage.setItem(testKey, '1');
-      localStorage.removeItem(testKey);
-      this._useMemory = false;
-    } catch (e) {
-      console.warn('localStorage blocked, using in-memory fallback');
-      this._useMemory = true;
-    }
-  },
+  // ========== SETTINGS (dual storage: localStorage + IndexedDB) ==========
+  _settingsCache: {},
 
   getSetting(key, defaultValue) {
-    try {
-      if (this._useMemory) {
-        const val = this._memoryStore['runtracker_' + key];
-        return val !== undefined ? val : defaultValue;
-      }
-      const val = localStorage.getItem('runtracker_' + key);
-      return val !== null ? JSON.parse(val) : defaultValue;
-    } catch (e) {
-      const val = this._memoryStore['runtracker_' + key];
-      return val !== undefined ? val : defaultValue;
+    // 1. Check memory cache
+    if (this._settingsCache.hasOwnProperty(key)) {
+      return this._settingsCache[key];
     }
+    // 2. Try localStorage
+    try {
+      var val = localStorage.getItem('runtracker_' + key);
+      if (val !== null) {
+        var parsed = JSON.parse(val);
+        this._settingsCache[key] = parsed;
+        return parsed;
+      }
+    } catch (e) { /* blocked */ }
+    // 3. Return default
+    return defaultValue;
   },
 
   setSetting(key, value) {
+    // Save to memory cache
+    this._settingsCache[key] = value;
+    // Save to localStorage
     try {
-      if (!this._useMemory) {
-        localStorage.setItem('runtracker_' + key, JSON.stringify(value));
-      }
-    } catch (e) {
-      this._useMemory = true;
-    }
-    this._memoryStore['runtracker_' + key] = value;
+      localStorage.setItem('runtracker_' + key, JSON.stringify(value));
+    } catch (e) { /* blocked */ }
+    // Save to IndexedDB (backup)
+    this._setSettingIDB(key, JSON.stringify(value));
   }
 };
-
-// Test localStorage availability immediately
-DB._initStorage();
