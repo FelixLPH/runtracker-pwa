@@ -250,13 +250,37 @@
               <div class="interest-pill" onclick="App.toggleInterest(this)">☕ Café</div>
             </div>
 
-            <label class="input-label">Sobre fumar</label>
-            <div class="option-group" id="option-smoking">
-              <div class="option-item" onclick="App.selectOption('smoking', this)">Não fumo</div>
-              <div class="option-item" onclick="App.selectOption('smoking', this)">Fumo</div>
-              <div class="option-item" onclick="App.selectOption('smoking', this)">Tentando parar</div>
-              <div class="option-item" onclick="App.selectOption('smoking', this)">Fumo quando bebo</div>
-              <div class="option-item" onclick="App.selectOption('smoking', this)">Não curto fumante</div>
+            <label class="input-label">Qual seu esporte? 🏅</label>
+            <div class="interests-grid" id="sports-grid">
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🏃 Corrida</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🚴 Ciclismo</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🏊 Natação</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🏋️ Musculação</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🧘 Yoga</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">⚽ Futebol</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🏐 Vôlei</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🥊 Luta</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🏄 Surf</div>
+              <div class="interest-pill" onclick="App.toggleInterest(this)">🧗 Trilha</div>
+            </div>
+
+            <div class="input-row">
+              <div class="input-group">
+                <label for="onboard-weekly-km">Km por semana</label>
+                <input type="number" id="onboard-weekly-km" class="input-field" placeholder="20" min="0" max="500" step="1">
+              </div>
+              <div class="input-group">
+                <label for="onboard-pace">Pace médio (min/km)</label>
+                <input type="text" id="onboard-pace" class="input-field" placeholder="5:30">
+              </div>
+            </div>
+
+            <label class="input-label">Quem é você na prova? 🏆</label>
+            <div class="option-group" id="option-race-style">
+              <div class="option-item" onclick="App.selectOption('raceStyle', this)">🥇 Brigo pelo pódio</div>
+              <div class="option-item" onclick="App.selectOption('raceStyle', this)">⏱️ Quero melhorar meu tempo</div>
+              <div class="option-item" onclick="App.selectOption('raceStyle', this)">🎉 Só curto a vibe</div>
+              <div class="option-item" onclick="App.selectOption('raceStyle', this)">🆕 Ainda não fiz prova</div>
             </div>
 
             <div class="input-row">

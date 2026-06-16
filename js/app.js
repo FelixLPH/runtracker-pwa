@@ -165,6 +165,11 @@ const App = {
     var bio = p.bio ? '<div class="profile-card-bio">' + p.bio + '</div>' : '';
     var goalTag = p.relationshipGoal ? '<div class="profile-card-goal">' + p.relationshipGoal + '</div>' : '';
     
+    var sports = '';
+    if (p.sports && p.sports.length > 0) {
+      sports = '<div class="profile-card-tags">' + p.sports.map(function(s) { return '<span class="profile-card-tag">' + s + '</span>'; }).join('') + '</div>';
+    }
+
     var interests = '';
     if (p.interests && p.interests.length > 0) {
       interests = '<div class="profile-card-tags">' + p.interests.map(function(i) { return '<span class="profile-card-tag">' + i + '</span>'; }).join('') + '</div>';
@@ -174,11 +179,20 @@ const App = {
       ? '<img class="profile-card-photo" src="' + p.photos[0] + '" alt="' + p.name + '">'
       : '<div class="profile-card-photo-placeholder">🏃</div>';
 
+    var statsLine = '';
+    var statsItems = [];
+    if (p.weeklyKm) statsItems.push(p.weeklyKm + ' km/sem');
+    if (p.avgPace) statsItems.push('Pace ' + p.avgPace);
+    if (p.raceStyle) statsItems.push(p.raceStyle);
+    if (statsItems.length > 0) {
+      statsLine = '<div class="profile-card-bio" style="font-size:0.78rem; opacity:0.85;">' + statsItems.join(' · ') + '</div>';
+    }
+
     cardArea.innerHTML = '<div class="profile-card" id="current-profile-card">' +
       photo +
       '<div class="profile-card-info">' +
         '<div class="profile-card-name">' + p.name + '<span class="profile-card-age">' + ageStr + '</span></div>' +
-        location + bio + goalTag + interests +
+        location + bio + goalTag + sports + interests + statsLine +
       '</div></div>';
     
     actions.style.display = 'flex';
@@ -490,6 +504,7 @@ const App = {
     else if (type === 'preference') this._onboardData.preference = value;
     else if (type === 'goal') this._onboardData.relationshipGoal = value;
     else if (type === 'smoking') this._onboardData.smoking = value;
+    else if (type === 'raceStyle') this._onboardData.raceStyle = value;
   },
 
   // Interest toggle (multi choice)
@@ -554,6 +569,15 @@ const App = {
         interests.push(el.textContent.trim());
       });
       d.interests = interests;
+      
+      // Collect sports
+      var sports = [];
+      document.querySelectorAll('#sports-grid .interest-pill.selected').forEach(function(el) {
+        sports.push(el.textContent.trim());
+      });
+      d.sports = sports;
+      d.weeklyKm = parseInt(document.getElementById('onboard-weekly-km').value) || 0;
+      d.avgPace = (document.getElementById('onboard-pace').value || '').trim();
       
       // Collect photos (filter nulls)
       d.photos = this._onboardPhotos.filter(function(p) { return p != null; });

@@ -737,10 +737,12 @@ const UI = {
     var genderOptions = ['Masculino', 'Feminino', 'Prefiro não informar'];
     var prefOptions = ['Homens', 'Mulheres', 'Tanto faz'];
     var goalOptions = ['Relacionamento sério', 'Casual', 'Nada sério, vamos ver', 'Algo sério, deixa rolar', 'Amizades', 'Parceiro de treino'];
-    var smokingOptions = ['Não fumo', 'Fumo', 'Tentando parar', 'Fumo quando bebo', 'Não curto fumante'];
+    var raceStyleOptions = ['🥇 Brigo pelo pódio', '⏱️ Quero melhorar meu tempo', '🎉 Só curto a vibe', '🆕 Ainda não fiz prova'];
     var allInterests = ['🏖️ Praia', '🌿 Campo', '🏠 Ficar em casa', '🏋️ Treinar', '✈️ Viajar', '🎵 Música', '📚 Ler', '🎮 Games', '🍳 Cozinhar', '🐾 Pets', '🎬 Filmes', '☕ Café'];
+    var allSports = ['🏃 Corrida', '🚴 Ciclismo', '🏊 Natação', '🏋️ Musculação', '🧘 Yoga', '⚽ Futebol', '🏐 Vôlei', '🥊 Luta', '🏄 Surf', '🧗 Trilha'];
     
     var myInterests = p.interests || [];
+    var mySports = p.sports || [];
     var photos = p.photos || [];
 
     var makeOptions = function(options, selected, groupId) {
@@ -766,6 +768,11 @@ const UI = {
       return '<div class="interest-pill' + sel + '" onclick="this.classList.toggle(\'selected\')">' + int + '</div>';
     }).join('');
 
+    var sportPills = allSports.map(function(s) {
+      var sel = mySports.indexOf(s) >= 0 ? ' selected' : '';
+      return '<div class="interest-pill' + sel + '" onclick="this.classList.toggle(\'selected\')">' + s + '</div>';
+    }).join('');
+
     return '<div class="profile-section glass-card" id="social-edit-section">' +
       '<h3 class="card-title">✏️ Editar perfil social</h3>' +
       
@@ -788,8 +795,16 @@ const UI = {
       '<label class="input-label">O que curte?</label>' +
       '<div class="interests-grid" id="edit-interests">' + interestPills + '</div>' +
       
-      '<label class="input-label">Sobre fumar</label>' +
-      makeOptions(smokingOptions, p.smoking, 'edit-smoking') +
+      '<label class="input-label">Qual seu esporte? 🏅</label>' +
+      '<div class="interests-grid" id="edit-sports">' + sportPills + '</div>' +
+      
+      '<div class="input-row"><div class="input-group"><label for="edit-weekly-km">Km por semana</label>' +
+      '<input type="number" id="edit-weekly-km" class="input-field" value="' + (p.weeklyKm || '') + '" placeholder="20" min="0" max="500"></div>' +
+      '<div class="input-group"><label for="edit-pace">Pace médio</label>' +
+      '<input type="text" id="edit-pace" class="input-field" value="' + (p.avgPace || '') + '" placeholder="5:30"></div></div>' +
+      
+      '<label class="input-label">Quem é você na prova? 🏆</label>' +
+      makeOptions(raceStyleOptions, p.raceStyle, 'edit-race-style') +
       
       '<div class="input-row"><div class="input-group"><label for="edit-city">Cidade</label>' +
       '<input type="text" id="edit-city" class="input-field" value="' + (p.city || '') + '" placeholder="São Paulo"></div>' +
@@ -859,11 +874,13 @@ const UI = {
     profile.gender = getSelected('edit-gender') || profile.gender;
     profile.preference = getSelected('edit-preference') || profile.preference;
     profile.relationshipGoal = getSelected('edit-goal') || profile.relationshipGoal;
-    profile.smoking = getSelected('edit-smoking') || profile.smoking;
+    profile.raceStyle = getSelected('edit-race-style') || profile.raceStyle;
     
     profile.bio = (document.getElementById('edit-bio').value || '').trim();
     profile.city = (document.getElementById('edit-city').value || '').trim();
     profile.state = (document.getElementById('edit-state').value || '').trim().toUpperCase();
+    profile.weeklyKm = parseInt(document.getElementById('edit-weekly-km').value) || 0;
+    profile.avgPace = (document.getElementById('edit-pace').value || '').trim();
     
     // Collect interests
     var interests = [];
@@ -871,11 +888,21 @@ const UI = {
       interests.push(el.textContent.trim());
     });
     profile.interests = interests;
+
+    // Collect sports
+    var sports = [];
+    document.querySelectorAll('#edit-sports .interest-pill.selected').forEach(function(el) {
+      sports.push(el.textContent.trim());
+    });
+    profile.sports = sports;
     
     // Privacy toggles
     profile.showWeight = document.getElementById('edit-showWeight').checked;
     profile.showHeight = document.getElementById('edit-showHeight').checked;
     profile.showLocation = document.getElementById('edit-showLocation').checked;
+    
+    // Remove old smoking field if exists
+    delete profile.smoking;
     
     await Cloud.saveProfile(profile);
     this.showToast('Perfil social salvo! 💜');
