@@ -737,10 +737,9 @@ const UI = {
     var genderOptions = ['Masculino', 'Feminino', 'Prefiro não informar'];
     var prefOptions = ['Homens', 'Mulheres', 'Tanto faz'];
     var sockOptions = [
-      { label: '🧦 Azul — Solteiro(a) e aberto(a) a namoro', color: '#2196F3' },
-      { label: '🧦 Verde — Ficando ou conhecendo alguém', color: '#4CAF50' },
-      { label: '🧦 Vermelha — Apaixonado(a)', color: '#F44336' },
-      { label: '🧦 Rosa — Só quer amizade', color: '#E91E93' }
+      { label: '🧦 Azul — Solteiro(a) e aberto(a) a namoro, ou deixa rolar', color: '#2196F3' },
+      { label: '🧦 Rosa — Só quer amizade', color: '#E91E93' },
+      { label: '🧦 Branca — Quero parceiro(a) de treino', color: '#EEEEEE' }
     ];
     var raceStyleOptions = ['🥇 Brigo pelo pódio', '⏱️ Quero melhorar meu tempo', '🎉 Só curto a vibe', '🆕 Ainda não fiz prova'];
     var allInterests = ['🏖️ Praia', '🌿 Campo', '🏠 Ficar em casa', '🏋️ Treinar', '✈️ Viajar', '🎵 Música', '📚 Ler', '🎮 Games', '🍳 Cozinhar', '🐾 Pets', '🎬 Filmes', '☕ Café'];

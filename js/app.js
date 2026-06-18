@@ -165,7 +165,7 @@ const App = {
     var bio = p.bio ? '<div class="profile-card-bio">' + p.bio + '</div>' : '';
     var goalTag = '';
     if (p.relationshipGoal) {
-      var sockColors = { 'Azul': '#2196F3', 'Verde': '#4CAF50', 'Vermelha': '#F44336', 'Rosa': '#E91E93' };
+      var sockColors = { 'Azul': '#2196F3', 'Rosa': '#E91E93', 'Branca': '#EEEEEE' };
       var sockColor = '#8B5CF6';
       for (var key in sockColors) { if (p.relationshipGoal.indexOf(key) >= 0) { sockColor = sockColors[key]; break; } }
       goalTag = '<div class="profile-card-goal" style="border-left:3px solid ' + sockColor + '; padding-left:8px;">' + p.relationshipGoal + '</div>';
@@ -277,7 +277,7 @@ const App = {
       var date = new Date(m.timestamp).toLocaleDateString('pt-BR');
       var goal = '';
       if (p.relationshipGoal) {
-        var sc = { 'Azul': '#2196F3', 'Verde': '#4CAF50', 'Vermelha': '#F44336', 'Rosa': '#E91E93' };
+        var sc = { 'Azul': '#2196F3', 'Rosa': '#E91E93', 'Branca': '#EEEEEE' };
         var c = '#8B5CF6'; for (var k in sc) { if (p.relationshipGoal.indexOf(k) >= 0) { c = sc[k]; break; } }
         goal = '<div class="match-card-goal" style="border-left:3px solid ' + c + '; padding-left:6px;">' + p.relationshipGoal + '</div>';
       }
