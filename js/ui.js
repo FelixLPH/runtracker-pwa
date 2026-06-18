@@ -736,7 +736,12 @@ const UI = {
   _renderSocialEditForm(p) {
     var genderOptions = ['Masculino', 'Feminino', 'Prefiro não informar'];
     var prefOptions = ['Homens', 'Mulheres', 'Tanto faz'];
-    var goalOptions = ['Relacionamento sério', 'Casual', 'Nada sério, vamos ver', 'Algo sério, deixa rolar', 'Amizades', 'Parceiro de treino'];
+    var sockOptions = [
+      { label: '🧦 Azul — Solteiro(a) e aberto(a) a namoro', color: '#2196F3' },
+      { label: '🧦 Verde — Ficando ou conhecendo alguém', color: '#4CAF50' },
+      { label: '🧦 Vermelha — Apaixonado(a)', color: '#F44336' },
+      { label: '🧦 Rosa — Só quer amizade', color: '#E91E93' }
+    ];
     var raceStyleOptions = ['🥇 Brigo pelo pódio', '⏱️ Quero melhorar meu tempo', '🎉 Só curto a vibe', '🆕 Ainda não fiz prova'];
     var allInterests = ['🏖️ Praia', '🌿 Campo', '🏠 Ficar em casa', '🏋️ Treinar', '✈️ Viajar', '🎵 Música', '📚 Ler', '🎮 Games', '🍳 Cozinhar', '🐾 Pets', '🎬 Filmes', '☕ Café'];
     var allSports = ['🏃 Corrida', '🚴 Ciclismo', '🏊 Natação', '🏋️ Musculação', '🧘 Yoga', '⚽ Futebol', '🏐 Vôlei', '🥊 Luta', '🏄 Surf', '🧗 Trilha'];
@@ -782,8 +787,11 @@ const UI = {
       '<label class="input-label">Quero ver</label>' +
       makeOptions(prefOptions, p.preference, 'edit-preference') +
       
-      '<label class="input-label">O que busca</label>' +
-      makeOptions(goalOptions, p.relationshipGoal, 'edit-goal') +
+      '<label class="input-label">Qual sua meia? 🧦</label>' +
+      '<p class="text-muted" style="font-size:0.75rem; margin-bottom:var(--space-sm);">A mística das meias coloridas!</p>' +
+      '<div class="option-group" id="edit-goal">' + sockOptions.map(function(s) {
+        return '<div class="option-item sock-option' + (s.label === p.relationshipGoal ? ' selected' : '') + '" style="border-left:4px solid ' + s.color + ';" onclick="UI.selectSocialOption(\'edit-goal\', this)">' + s.label + '</div>';
+      }).join('') + '</div>' +
       
       '<label class="input-label">Fotos (até 5)</label>' +
       '<div class="photo-grid" id="social-photo-grid">' + photoSlots + '</div>' +

@@ -162,14 +162,13 @@
               <div class="option-item" onclick="App.selectOption('preference', this)">Tanto faz</div>
             </div>
 
-            <label class="input-label">O que busca</label>
+            <label class="input-label">Qual sua meia? 🧦</label>
+            <p class="text-muted" style="font-size:0.75rem; margin-bottom: var(--space-sm);">A mística das meias coloridas dos corredores!</p>
             <div class="option-group" id="option-goal">
-              <div class="option-item" onclick="App.selectOption('goal', this)">Relacionamento sério</div>
-              <div class="option-item" onclick="App.selectOption('goal', this)">Casual</div>
-              <div class="option-item" onclick="App.selectOption('goal', this)">Nada sério, vamos ver</div>
-              <div class="option-item" onclick="App.selectOption('goal', this)">Algo sério, deixa rolar</div>
-              <div class="option-item" onclick="App.selectOption('goal', this)">Amizades</div>
-              <div class="option-item" onclick="App.selectOption('goal', this)">Parceiro de treino</div>
+              <div class="option-item sock-option" onclick="App.selectOption('goal', this)" style="border-left: 4px solid #2196F3;">🧦 Azul — Solteiro(a) e aberto(a) a namoro</div>
+              <div class="option-item sock-option" onclick="App.selectOption('goal', this)" style="border-left: 4px solid #4CAF50;">🧦 Verde — Ficando ou conhecendo alguém</div>
+              <div class="option-item sock-option" onclick="App.selectOption('goal', this)" style="border-left: 4px solid #F44336;">🧦 Vermelha — Apaixonado(a)</div>
+              <div class="option-item sock-option" onclick="App.selectOption('goal', this)" style="border-left: 4px solid #E91E93;">🧦 Rosa — Só quer amizade</div>
             </div>
 
             <button type="button" class="btn-primary btn-lg" onclick="App.goToSocialStep2()">
