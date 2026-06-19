@@ -6,7 +6,7 @@
 const UI = {
 
   // ========== HOME PAGE ==========
-  async renderHome() {
+  async renderHome(targetContainer) {
     var activities = [];
     try {
       activities = await DB.getAllActivities();
@@ -87,7 +87,7 @@ const UI = {
     var goalCompleted = goalPct >= 100;
     var goalRemaining = Math.max(0, weeklyGoal - weeklyDistance);
 
-    var container = document.getElementById('page-home');
+    var container = targetContainer || document.getElementById('home-mine-content');
     container.innerHTML =
       '<div class="page-header">' +
         '<div>' +
@@ -563,6 +563,16 @@ const UI = {
         <div class="profile-avatar">${initial}</div>
         <h2 class="profile-display-name">${name || 'Corredor'}</h2>
         ${ageDisplay ? `<p class="text-muted">${ageDisplay}${height ? ` · ${height} cm` : ''}${weight ? ` · ${weight} kg` : ''}</p>` : ''}
+        <div class="follow-counts" id="profile-follow-counts">
+          <div class="follow-count-item">
+            <span class="follow-count-number" id="followers-count">-</span>
+            <span class="follow-count-label">Seguidores</span>
+          </div>
+          <div class="follow-count-item">
+            <span class="follow-count-number" id="following-count">-</span>
+            <span class="follow-count-label">Seguindo</span>
+          </div>
+        </div>
       </div>
 
       <div class="profile-form glass-card">
@@ -684,6 +694,14 @@ const UI = {
         </div>
       </div>
     `;
+    
+    // Load follow counts async
+    Cloud.getFollowCounts().then(function(counts) {
+      var el1 = document.getElementById('followers-count');
+      var el2 = document.getElementById('following-count');
+      if (el1) el1.textContent = counts.followers;
+      if (el2) el2.textContent = counts.following;
+    });
   },
 
   saveProfile() {

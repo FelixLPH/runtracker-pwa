@@ -112,13 +112,10 @@ const App = {
     // Page-specific initialization
     switch (pageName) {
       case 'home':
-        UI.renderHome();
+        this.initHomePage();
         break;
       case 'record':
         this.initRecordPage();
-        break;
-      case 'history':
-        UI.renderHistory();
         break;
       case 'discover':
         this.initDiscoverPage();
@@ -138,6 +135,151 @@ const App = {
   },
 
   // ========== DISCOVER ==========
+  // ========== HOME PAGE (Feed + Mine) ==========
+  _homeTab: 'feed',
+
+  async initHomePage() {
+    this.switchHomeTab(this._homeTab);
+  },
+
+  switchHomeTab(tab) {
+    this._homeTab = tab;
+    var feedEl = document.getElementById('home-feed-content');
+    var mineEl = document.getElementById('home-mine-content');
+    var tabFeed = document.getElementById('home-tab-feed');
+    var tabMine = document.getElementById('home-tab-mine');
+    
+    if (tab === 'feed') {
+      feedEl.style.display = 'block';
+      mineEl.style.display = 'none';
+      tabFeed.classList.add('active');
+      tabMine.classList.remove('active');
+      this.loadFeed();
+    } else {
+      feedEl.style.display = 'none';
+      mineEl.style.display = 'block';
+      tabFeed.classList.remove('active');
+      tabMine.classList.add('active');
+      this.loadMineActivities();
+    }
+  },
+
+  async loadFeed() {
+    var container = document.getElementById('home-feed-content');
+    container.innerHTML = '<div class="feed-empty"><div class="spinner"></div><p>Carregando feed...</p></div>';
+    
+    var items = await Cloud.loadFeed();
+    
+    if (items.length === 0) {
+      container.innerHTML = '<div class="feed-empty"><div class="feed-empty-icon">📰</div>' +
+        '<p>Seu feed está vazio.<br>Siga corredores no <strong>Descobrir</strong> para ver as atividades deles aqui!</p></div>';
+      return;
+    }
+    
+    var html = '';
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      var a = item.activity;
+      var sportEmojis = { run: '🏃', cycle: '🚴', walk: '🚶' };
+      var sportNames = { run: 'Corrida', cycle: 'Ciclismo', walk: 'Caminhada' };
+      var sportEmoji = sportEmojis[a.sport] || '🏃';
+      var sportName = sportNames[a.sport] || 'Atividade';
+      
+      var avatar = item.ownerPhoto 
+        ? '<img class="feed-card-avatar" src="' + item.ownerPhoto + '">'
+        : '<div class="feed-card-avatar-placeholder">' + (item.ownerName ? item.ownerName.charAt(0).toUpperCase() : '?') + '</div>';
+      
+      var timeAgo = this._timeAgo(a.date);
+      var dist = a.distance ? (a.distance / 1000).toFixed(2) : '0';
+      var duration = a.duration ? Stats.formatDuration(a.duration) : '--:--';
+      var pace = (a.distance && a.duration && a.distance > 0) ? Stats.formatPace(a.duration / (a.distance / 1000)) : '--:--';
+      
+      html += '<div class="feed-card">' +
+        '<div class="feed-card-header">' + avatar +
+          '<div class="feed-card-user"><div class="feed-card-name">' + item.ownerName + '</div>' +
+          '<div class="feed-card-time">' + timeAgo + '</div></div>' +
+        '</div>' +
+        '<div class="feed-card-body">' +
+          '<div class="feed-card-sport">' + sportEmoji + ' ' + sportName + '</div>' +
+          '<div class="feed-card-stats">' +
+            '<div class="feed-card-stat"><span class="feed-card-stat-value">' + dist + '</span><span class="feed-card-stat-label">km</span></div>' +
+            '<div class="feed-card-stat"><span class="feed-card-stat-value">' + duration + '</span><span class="feed-card-stat-label">tempo</span></div>' +
+            '<div class="feed-card-stat"><span class="feed-card-stat-value">' + pace + '</span><span class="feed-card-stat-label">pace</span></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="feed-card-footer">' +
+          '<button class="feed-like-btn" id="like-' + item.ownerUid + '-' + item.actId + '" onclick="App.toggleLike(\'' + item.ownerUid + '\', \'' + item.actId + '\')">🤍 Curtir</button>' +
+        '</div>' +
+      '</div>';
+    }
+    container.innerHTML = html;
+    
+    // Load like states async
+    for (var j = 0; j < items.length; j++) {
+      this._loadLikeState(items[j].ownerUid, items[j].actId);
+    }
+  },
+
+  async _loadLikeState(ownerUid, actId) {
+    var info = await Cloud.getActivityLikeInfo(ownerUid, actId);
+    var btn = document.getElementById('like-' + ownerUid + '-' + actId);
+    if (btn) {
+      var heart = info.liked ? '❤️' : '🤍';
+      var countText = info.count > 0 ? ' ' + info.count : '';
+      btn.className = 'feed-like-btn' + (info.liked ? ' liked' : '');
+      btn.innerHTML = heart + countText + ' Curtir';
+    }
+  },
+
+  async toggleLike(ownerUid, actId) {
+    var btn = document.getElementById('like-' + ownerUid + '-' + actId);
+    if (!btn) return;
+    
+    var isLiked = btn.classList.contains('liked');
+    if (isLiked) {
+      await Cloud.unlikeActivity(ownerUid, actId);
+    } else {
+      await Cloud.likeActivity(ownerUid, actId);
+    }
+    this._loadLikeState(ownerUid, actId);
+  },
+
+  async loadMineActivities() {
+    var container = document.getElementById('home-mine-content');
+    container.innerHTML = '<div class="feed-empty"><div class="spinner"></div></div>';
+    UI.renderHome(container);
+  },
+
+  _timeAgo(dateStr) {
+    var now = new Date();
+    var d = new Date(dateStr);
+    var diff = Math.floor((now - d) / 1000);
+    if (diff < 60) return 'agora';
+    if (diff < 3600) return Math.floor(diff / 60) + ' min';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h';
+    if (diff < 604800) return Math.floor(diff / 86400) + 'd';
+    return d.toLocaleDateString('pt-BR');
+  },
+
+  // ========== FOLLOW FROM DISCOVER ==========
+  async followFromDiscover(uid) {
+    var btn = document.getElementById('follow-btn-' + uid);
+    if (!btn) return;
+    
+    var isFollowing = btn.classList.contains('following');
+    if (isFollowing) {
+      await Cloud.unfollowUser(uid);
+      btn.classList.remove('following');
+      btn.textContent = 'Seguir';
+      UI.showToast('Deixou de seguir');
+    } else {
+      await Cloud.followUser(uid);
+      btn.classList.add('following');
+      btn.textContent = 'Seguindo';
+      UI.showToast('Seguindo! 🏃‍♂️');
+    }
+  },
+
   async initDiscoverPage() {
     var cardArea = document.getElementById('discover-card-area');
     cardArea.innerHTML = '<div class="discover-empty"><div class="discover-empty-icon">🔍</div><p>Carregando perfis...</p></div>';
@@ -194,14 +336,28 @@ const App = {
       statsLine = '<div class="profile-card-bio" style="font-size:0.78rem; opacity:0.85;">' + statsItems.join(' · ') + '</div>';
     }
 
+    var followBtn = '<button class="feed-card-follow" id="follow-btn-' + profile.id + '" onclick="event.stopPropagation(); App.followFromDiscover(\'' + profile.id + '\')">Seguir</button>';
+
     cardArea.innerHTML = '<div class="profile-card" id="current-profile-card">' +
       photo +
       '<div class="profile-card-info">' +
-        '<div class="profile-card-name">' + p.name + '<span class="profile-card-age">' + ageStr + '</span></div>' +
+        '<div style="display:flex; align-items:center; justify-content:space-between;">' +
+          '<div class="profile-card-name">' + p.name + '<span class="profile-card-age">' + ageStr + '</span></div>' +
+          followBtn +
+        '</div>' +
         location + bio + goalTag + sports + interests + statsLine +
       '</div></div>';
     
     actions.style.display = 'flex';
+    
+    // Check follow state async
+    Cloud.isFollowing(profile.id).then(function(following) {
+      var btn = document.getElementById('follow-btn-' + profile.id);
+      if (btn && following) {
+        btn.classList.add('following');
+        btn.textContent = 'Seguindo';
+      }
+    });
   },
 
   async likeProfile() {

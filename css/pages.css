@@ -6,7 +6,220 @@
    1. HOME PAGE
    ================================================ */
 #page-home {
-  padding: var(--space-lg) var(--space-md);
+  padding: 0 var(--space-md) var(--space-lg);
+}
+
+/* === HOME SUB-TABS === */
+.home-tabs {
+  display: flex;
+  gap: 0;
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: var(--space-md);
+  position: sticky;
+  top: 0;
+  background: var(--bg-primary);
+  z-index: 5;
+}
+
+.home-tab {
+  flex: 1;
+  padding: 10px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.home-tab-content {
+  min-height: 200px;
+}
+
+/* === FEED CARD === */
+.feed-card {
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-md);
+  overflow: hidden;
+}
+
+.feed-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.feed-card-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-tertiary);
+  flex-shrink: 0;
+}
+
+.feed-card-avatar-placeholder {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: white;
+  flex-shrink: 0;
+}
+
+.feed-card-user {
+  flex: 1;
+  min-width: 0;
+}
+
+.feed-card-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.feed-card-time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.feed-card-follow {
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.feed-card-follow.following {
+  background: var(--accent);
+  color: white;
+}
+
+.feed-card-body {
+  padding: 0 var(--space-md) var(--space-sm);
+}
+
+.feed-card-sport {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.feed-card-stats {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.feed-card-stat {
+  text-align: center;
+}
+
+.feed-card-stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
+}
+
+.feed-card-stat-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.feed-card-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+.feed-like-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.feed-like-btn:active {
+  transform: scale(0.92);
+}
+
+.feed-like-btn.liked {
+  color: #F44336;
+}
+
+.feed-empty {
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  color: var(--text-muted);
+}
+
+.feed-empty-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-md);
+}
+
+/* === FOLLOW COUNTS === */
+.follow-counts {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-xl);
+  margin-top: var(--space-sm);
+}
+
+.follow-count-item {
+  text-align: center;
+}
+
+.follow-count-number {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
+}
+
+.follow-count-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .page-header {

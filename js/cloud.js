@@ -246,5 +246,163 @@ const Cloud = {
       console.error('Cloud sync error:', e);
       return false;
     }
+  },
+
+  // ========== FOLLOW SYSTEM ==========
+  async followUser(targetUid) {
+    var myUid = this.getUID();
+    if (!this._initialized || !this._db || !myUid || myUid === targetUid) return false;
+    try {
+      var updates = {};
+      updates['social/following/' + myUid + '/' + targetUid] = true;
+      updates['social/followers/' + targetUid + '/' + myUid] = true;
+      await this._db.ref().update(updates);
+      console.log('✅ Followed', targetUid);
+      return true;
+    } catch (e) {
+      console.error('Follow error:', e);
+      return false;
+    }
+  },
+
+  async unfollowUser(targetUid) {
+    var myUid = this.getUID();
+    if (!this._initialized || !this._db || !myUid) return false;
+    try {
+      var updates = {};
+      updates['social/following/' + myUid + '/' + targetUid] = null;
+      updates['social/followers/' + targetUid + '/' + myUid] = null;
+      await this._db.ref().update(updates);
+      console.log('❌ Unfollowed', targetUid);
+      return true;
+    } catch (e) {
+      console.error('Unfollow error:', e);
+      return false;
+    }
+  },
+
+  async isFollowing(targetUid) {
+    var myUid = this.getUID();
+    if (!this._initialized || !this._db || !myUid) return false;
+    try {
+      var snap = await this._db.ref('social/following/' + myUid + '/' + targetUid).once('value');
+      return snap.val() === true;
+    } catch (e) { return false; }
+  },
+
+  async getFollowing() {
+    var myUid = this.getUID();
+    if (!this._initialized || !this._db || !myUid) return [];
+    try {
+      var snap = await this._db.ref('social/following/' + myUid).once('value');
+      if (!snap.exists()) return [];
+      return Object.keys(snap.val());
+    } catch (e) { return []; }
+  },
+
+  async getFollowers() {
+    var myUid = this.getUID();
+    if (!this._initialized || !this._db || !myUid) return [];
+    try {
+      var snap = await this._db.ref('social/followers/' + myUid).once('value');
+      if (!snap.exists()) return [];
+      return Object.keys(snap.val());
+    } catch (e) { return []; }
+  },
+
+  async getFollowCounts(uid) {
+    uid = uid || this.getUID();
+    if (!this._initialized || !this._db || !uid) return { following: 0, followers: 0 };
+    try {
+      var fing = await this._db.ref('social/following/' + uid).once('value');
+      var fers = await this._db.ref('social/followers/' + uid).once('value');
+      return {
+        following: fing.exists() ? Object.keys(fing.val()).length : 0,
+        followers: fers.exists() ? Object.keys(fers.val()).length : 0
+      };
+    } catch (e) { return { following: 0, followers: 0 }; }
+  },
+
+  // ========== ACTIVITY LIKES ==========
+  async likeActivity(ownerUid, actId) {
+    var myUid = this.getUID();
+    if (!this._initialized || !this._db || !myUid) return false;
+    try {
+      await this._db.ref('social/activity-likes/' + ownerUid + '/' + actId + '/' + myUid).set(true);
+      return true;
+    } catch (e) { return false; }
+  },
+
+  async unlikeActivity(ownerUid, actId) {
+    var myUid = this.getUID();
+    if (!this._initialized || !this._db || !myUid) return false;
+    try {
+      await this._db.ref('social/activity-likes/' + ownerUid + '/' + actId + '/' + myUid).remove();
+      return true;
+    } catch (e) { return false; }
+  },
+
+  async getActivityLikeInfo(ownerUid, actId) {
+    var myUid = this.getUID();
+    if (!this._initialized || !this._db) return { count: 0, liked: false };
+    try {
+      var snap = await this._db.ref('social/activity-likes/' + ownerUid + '/' + actId).once('value');
+      if (!snap.exists()) return { count: 0, liked: false };
+      var data = snap.val();
+      var keys = Object.keys(data);
+      return { count: keys.length, liked: myUid ? keys.indexOf(myUid) >= 0 : false };
+    } catch (e) { return { count: 0, liked: false }; }
+  },
+
+  // ========== FEED ==========
+  async loadFeed() {
+    var followingUids = await this.getFollowing();
+    if (followingUids.length === 0) return [];
+    
+    var allActivities = [];
+    for (var i = 0; i < followingUids.length; i++) {
+      var uid = followingUids[i];
+      try {
+        // Load profile
+        var profileSnap = await this._db.ref('users/' + uid + '/profile').once('value');
+        var profile = profileSnap.exists() ? profileSnap.val() : {};
+        
+        // Load last 10 activities
+        var actSnap = await this._db.ref('users/' + uid + '/activities').orderByKey().limitToLast(10).once('value');
+        if (actSnap.exists()) {
+          var acts = actSnap.val();
+          for (var key in acts) {
+            if (acts.hasOwnProperty(key)) {
+              allActivities.push({
+                activity: acts[key],
+                actId: key,
+                ownerUid: uid,
+                ownerName: profile.name || 'Corredor',
+                ownerPhoto: (profile.photos && profile.photos[0]) || null
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Feed load error for', uid, e);
+      }
+    }
+    
+    // Sort by date, newest first
+    allActivities.sort(function(a, b) {
+      return new Date(b.activity.date) - new Date(a.activity.date);
+    });
+    
+    // Return max 30
+    return allActivities.slice(0, 30);
+  },
+
+  // Load another user's profile (public)
+  async loadUserProfile(uid) {
+    if (!this._initialized || !this._db || !uid) return null;
+    try {
+      var snap = await this._db.ref('users/' + uid + '/profile').once('value');
+      return snap.exists() ? snap.val() : null;
+    } catch (e) { return null; }
   }
 };

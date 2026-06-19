@@ -303,8 +303,15 @@
 
     <!-- ===== HOME PAGE ===== -->
     <div class="page" id="page-home">
-      <div class="page-loading">
-        <div class="spinner"></div>
+      <div class="home-tabs">
+        <button class="home-tab active" id="home-tab-feed" onclick="App.switchHomeTab('feed')">📰 Feed</button>
+        <button class="home-tab" id="home-tab-mine" onclick="App.switchHomeTab('mine')">🏃 Minhas</button>
+      </div>
+      <div id="home-feed-content" class="home-tab-content">
+        <div class="page-loading"><div class="spinner"></div></div>
+      </div>
+      <div id="home-mine-content" class="home-tab-content" style="display:none;">
+        <div class="page-loading"><div class="spinner"></div></div>
       </div>
     </div>
 
