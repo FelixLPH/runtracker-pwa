@@ -43,9 +43,9 @@ const Cloud = {
     if (!this._initialized || !this._auth) throw new Error('Firebase not initialized');
     var provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    // Set persistence to SESSION to work around Samsung browser restrictions
+    // Set persistence to LOCAL so session survives page reload / background kill
     try {
-      await this._auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+      await this._auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
     } catch (e) {
       console.warn('Could not set persistence:', e);
     }

@@ -56,6 +56,9 @@ const App = {
         this._updateSocialNav(profile.socialEnabled === true);
         this.navigateTo('home');
         UI.showToast('Bem-vindo, ' + profile.name + '! 🎉');
+        
+        // Check if there's a recording that was interrupted
+        await this.checkInterruptedRecording();
       } else {
         // New user — show profile completion form
         this.navigateTo('onboarding');
@@ -846,9 +849,113 @@ const App = {
   },
 
   // ========== RUN CONTROLS ==========
+  _lastSavedKm: 0,
+
+  // Persist recording state to survive page kills
+  _saveRecordingState() {
+    try {
+      var state = {
+        recording: true,
+        startTime: this._recordStartTime,
+        sport: this.selectedSport,
+        points: this.gps.getPoints(),
+        distance: this.gps.getDistance(),
+        elapsed: this.timer.getElapsedSeconds(),
+        savedAt: Date.now()
+      };
+      localStorage.setItem('pacemeet_recording', JSON.stringify(state));
+    } catch(e) {}
+  },
+
+  _clearRecordingState() {
+    localStorage.removeItem('pacemeet_recording');
+  },
+
+  _getRecordingState() {
+    try {
+      var s = localStorage.getItem('pacemeet_recording');
+      return s ? JSON.parse(s) : null;
+    } catch(e) { return null; }
+  },
+
+  // Check for interrupted recording on app init
+  async checkInterruptedRecording() {
+    var state = this._getRecordingState();
+    if (!state || !state.recording) return;
+    
+    // Recording was interrupted! Show recovery UI
+    var elapsed = state.elapsed || 0;
+    var distKm = state.distance || 0;
+    var points = state.points || [];
+    
+    if (points.length < 2 || distKm < 0.01) {
+      // Too little data to recover
+      this._clearRecordingState();
+      return;
+    }
+
+    var mins = Math.floor(elapsed / 60);
+    var confirm = window.confirm(
+      '🏃 Corrida interrompida detectada!\n\n' +
+      '📏 ' + distKm.toFixed(2) + ' km\n' +
+      '⏱️ ' + mins + ' minutos\n' +
+      '📍 ' + points.length + ' pontos GPS\n\n' +
+      'Deseja salvar esta atividade?'
+    );
+
+    if (confirm) {
+      await this._saveInterruptedActivity(state);
+    }
+    this._clearRecordingState();
+  },
+
+  async _saveInterruptedActivity(state) {
+    var sportCfg = Stats.getSportConfig(state.sport || 'run');
+    var distance = state.distance || 0;
+    var duration = state.elapsed || 0;
+    var points = state.points || [];
+    var pace = Stats.getPaceOrSpeed(duration, distance, state.sport || 'run');
+    var weight = DB.getSetting('weight', 70);
+    var calories = Stats.estimateCalories(weight, duration, distance, state.sport || 'run');
+    var elevationGain = Stats.calculateElevationGain(points);
+    var maxElevation = Stats.getMaxElevation(points);
+    
+    var startDate = new Date(state.startTime);
+    var hour = startDate.getHours();
+    var timeOfDay = hour < 6 ? 'Madrugada' : hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite';
+    var days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    var title = sportCfg.label + ' de ' + days[startDate.getDay()] + ' à ' + timeOfDay;
+
+    var activity = {
+      title: title,
+      sport: state.sport || 'run',
+      date: startDate.toISOString(),
+      duration: Math.round(duration),
+      distance: Math.round(distance * 1000) / 1000,
+      pace: pace,
+      paceLabel: sportCfg.paceLabel,
+      calories: calories,
+      elevationGain: elevationGain,
+      maxElevation: maxElevation,
+      route: points,
+      recovered: true
+    };
+
+    try {
+      var id = await DB.saveActivity(activity);
+      activity.id = id;
+      await Cloud.saveActivity(activity);
+      UI.showToast('Atividade recuperada! 🎉');
+    } catch(e) {
+      UI.showToast('Erro ao salvar atividade recuperada');
+    }
+  },
+
   async startRun() {
     this.isRecording = true;
     this.isPaused = false;
+    this._recordStartTime = Date.now();
+    this._lastSavedKm = 0;
 
     // Hide sport selector during recording
     var selector = document.getElementById('sport-selector');
@@ -871,10 +978,18 @@ const App = {
       return;
     }
 
+    // Save initial state
+    this._saveRecordingState();
+
     // Start timer
     this.timer.start(function(formattedTime, seconds) {
       UI.updateTimer(formattedTime);
       UI.updateRecordStats(App.gps.getDistance(), seconds);
+      
+      // Auto-save state every 15 seconds
+      if (seconds % 15 === 0) {
+        App._saveRecordingState();
+      }
     });
 
     // Update UI state
@@ -904,6 +1019,7 @@ const App = {
     this.isRecording = false;
     this.isPaused = false;
     this.releaseWakeLock();
+    this._clearRecordingState();
 
     const points = this.gps.getPoints();
     const distance = this.gps.getDistance();

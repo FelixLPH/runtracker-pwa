@@ -161,6 +161,9 @@ const UI = {
             <h4>${activity.title}</h4>
             <span class="activity-card-date">${dateStr}</span>
           </div>
+          <button class="share-btn" onclick="event.stopPropagation(); UI.shareActivity(${activity.id}, '${sportCfg.icon}', '${activity.title}', ${activity.distance}, ${activity.duration}, '${activity.pace}')" title="Compartilhar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </button>
         </div>
         <div class="activity-card-stats">
           <div class="mini-stat">
@@ -178,6 +181,32 @@ const UI = {
         </div>
       </div>
     `;
+  },
+
+  async shareActivity(id, icon, title, distance, duration, pace) {
+    var distKm = Stats.formatDistance(distance);
+    var time = Stats.formatDuration(duration);
+    var text = icon + ' ' + title + '\n' +
+      '📏 ' + distKm + ' km\n' +
+      '⏱️ ' + time + '\n' +
+      '🏃 Pace: ' + pace + '/km\n\n' +
+      '💜 Registrado no PACEMEET';
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'PACEMEET - ' + title, text: text });
+      } catch(e) { /* user cancelled */ }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(text);
+        this.showToast('Copiado! Cole no WhatsApp 📋');
+      } catch(e) {
+        // Final fallback: WhatsApp link
+        var url = 'https://wa.me/?text=' + encodeURIComponent(text);
+        window.open(url, '_blank');
+      }
+    }
   },
 
   // ========== RECORD PAGE ==========
