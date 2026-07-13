@@ -13,16 +13,18 @@ class GPSTracker {
   onError(cb) { this._callbacks.error = cb; }
   onStatusChange(cb) { this._callbacks.status = cb; }
 
-  start() {
+  start(resume) {
     if (!navigator.geolocation) {
       this._emit('error', { message: 'GPS não disponível neste dispositivo' });
       return false;
     }
-    this._points = [];
-    this._totalDistance = 0;
+    if (!resume) {
+      this._points = [];
+      this._totalDistance = 0;
+    }
     this._isTracking = true;
     this._isPaused = false;
-    this._lastPoint = null;
+    this._lastPoint = this._points.length > 0 ? this._points[this._points.length - 1] : null;
     this._emit('status', 'searching');
 
     this._watchId = navigator.geolocation.watchPosition(

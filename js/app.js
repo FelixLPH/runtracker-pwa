@@ -38,6 +38,7 @@ const App = {
       this.setupNavigation();
       this.setupRecording();
       this.registerSW();
+      this._setupBackgroundHandlers();
     } catch (e) {
       console.error('❌ Setup failed:', e);
     }
@@ -835,6 +836,9 @@ const App = {
 
       // Update live stats
       UI.updateRecordStats(totalDistance, this.timer.getElapsedSeconds());
+      
+      // Save state on every GPS update for maximum data preservation
+      if (this.isRecording) this._saveRecordingState();
     });
 
     // GPS errors
@@ -883,30 +887,86 @@ const App = {
     var state = this._getRecordingState();
     if (!state || !state.recording) return;
     
-    // Recording was interrupted! Show recovery UI
     var elapsed = state.elapsed || 0;
     var distKm = state.distance || 0;
     var points = state.points || [];
     
     if (points.length < 2 || distKm < 0.01) {
-      // Too little data to recover
       this._clearRecordingState();
       return;
     }
 
-    var mins = Math.floor(elapsed / 60);
-    var confirm = window.confirm(
-      '🏃 Corrida interrompida detectada!\n\n' +
-      '📏 ' + distKm.toFixed(2) + ' km\n' +
-      '⏱️ ' + mins + ' minutos\n' +
+    // Calculate real elapsed time since start (includes background time)
+    var realElapsed = Math.floor((Date.now() - state.startTime) / 1000);
+    var mins = Math.floor(realElapsed / 60);
+
+    var choice = window.confirm(
+      '🏃 Corrida em andamento detectada!\n\n' +
+      '📏 ' + distKm.toFixed(2) + ' km registrados\n' +
+      '⏱️ ' + mins + ' min desde o início\n' +
       '📍 ' + points.length + ' pontos GPS\n\n' +
-      'Deseja salvar esta atividade?'
+      'OK = RETOMAR corrida (reativa GPS)\n' +
+      'Cancelar = Salvar o que tem e encerrar'
     );
 
-    if (confirm) {
+    if (choice) {
+      // RESUME: go to record page and restart GPS with saved data
+      await this._resumeRecording(state);
+    } else {
+      // SAVE: save what we have
       await this._saveInterruptedActivity(state);
+      this._clearRecordingState();
     }
-    this._clearRecordingState();
+  },
+
+  async _resumeRecording(state) {
+    // Restore recording state
+    this.isRecording = true;
+    this.isPaused = false;
+    this._recordStartTime = state.startTime;
+    this.selectedSport = state.sport || 'run';
+    this._lastSavedKm = Math.floor(state.distance || 0);
+
+    // Navigate to record page
+    this.navigateTo('record');
+
+    // Wait for page to render
+    await new Promise(function(r) { setTimeout(r, 300); });
+
+    // Request wake lock
+    await this.requestWakeLock();
+
+    // Restore GPS points into tracker
+    var savedPoints = state.points || [];
+    this.gps._points = savedPoints;
+    this.gps._totalDistance = state.distance || 0;
+    
+    // Start GPS tracking in resume mode (preserves existing points)
+    this.gps.start(true);
+
+    // Restore map with saved route
+    if (this.recordMap) {
+      this.recordMap.clear();
+      for (var i = 0; i < savedPoints.length; i++) {
+        this.recordMap.addPoint(savedPoints[i].lat, savedPoints[i].lng);
+      }
+    }
+
+    // Start timer from original start time
+    var elapsedSoFar = Math.floor((Date.now() - state.startTime) / 1000);
+    this.timer.startFrom(elapsedSoFar, function(formattedTime, seconds) {
+      UI.updateTimer(formattedTime);
+      UI.updateRecordStats(App.gps.getDistance(), seconds);
+      if (seconds % 15 === 0) {
+        App._saveRecordingState();
+      }
+    });
+
+    // Update UI
+    UI.setRecordingState('recording');
+    var selector = document.getElementById('sport-selector');
+    if (selector) selector.style.display = 'none';
+    UI.showToast('Corrida retomada! 🏃‍♂️ GPS reativado');
   },
 
   async _saveInterruptedActivity(state) {
@@ -945,10 +1005,49 @@ const App = {
       var id = await DB.saveActivity(activity);
       activity.id = id;
       await Cloud.saveActivity(activity);
-      UI.showToast('Atividade recuperada! 🎉');
+      UI.showToast('Atividade salva! 🎉');
     } catch(e) {
-      UI.showToast('Erro ao salvar atividade recuperada');
+      UI.showToast('Erro ao salvar atividade');
     }
+  },
+
+  // ========== BACKGROUND HANDLERS ==========
+  _setupBackgroundHandlers() {
+    var self = this;
+
+    // Save state when page becomes hidden (user switches app / locks screen)
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden' && self.isRecording) {
+        console.log('📱 App going to background — saving state');
+        self._saveRecordingState();
+      }
+      if (document.visibilityState === 'visible' && self.isRecording) {
+        console.log('📱 App back to foreground — re-acquiring wake lock');
+        self.requestWakeLock();
+      }
+    });
+
+    // Save state before page unload
+    window.addEventListener('beforeunload', function() {
+      if (self.isRecording) {
+        self._saveRecordingState();
+      }
+    });
+
+    // Chrome: page lifecycle 'freeze' event
+    window.addEventListener('freeze', function() {
+      if (self.isRecording) {
+        console.log('🧊 Page frozen — saving state');
+        self._saveRecordingState();
+      }
+    });
+
+    // Also save on pagehide (iOS Safari)
+    window.addEventListener('pagehide', function() {
+      if (self.isRecording) {
+        self._saveRecordingState();
+      }
+    });
   },
 
   async startRun() {

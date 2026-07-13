@@ -19,6 +19,18 @@ class RunTimer {
     this._startInterval();
   }
 
+  // Start timer from a given elapsed time (in seconds)
+  // Used to resume interrupted recordings
+  startFrom(elapsedSeconds, onTick) {
+    this._startTime = performance.now() - (elapsedSeconds * 1000);
+    this._totalPausedDuration = 0;
+    this._pausedTime = null;
+    this._isRunning = true;
+    this._isPaused = false;
+    this._onTick = onTick;
+    this._startInterval();
+  }
+
   pause() {
     if (!this._isRunning || this._isPaused) return;
     this._isPaused = true;
