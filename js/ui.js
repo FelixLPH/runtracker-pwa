@@ -746,16 +746,14 @@ const UI = {
     if (birthDate) DB.setSetting('birthDate', birthDate);
     DB.setSetting('weeklyGoal', goal);
 
-    // Sync to cloud — merge with existing profile to preserve social data
-    var existingProfile = Cloud._cachedProfile || {};
-    var updatedProfile = Object.assign({}, existingProfile, {
-      name: name || DB.getSetting('name', ''),
-      weight: weight || DB.getSetting('weight', 0),
-      height: height || DB.getSetting('height', 0),
-      birthDate: birthDate || DB.getSetting('birthDate', ''),
-      weeklyGoal: goal
-    });
-    Cloud.saveProfile(updatedProfile);
+    // Build update object — only include fields that have values
+    var profileUpdate = { weeklyGoal: goal };
+    if (name) profileUpdate.name = name;
+    if (weight && weight > 0) profileUpdate.weight = weight;
+    if (height && height > 0) profileUpdate.height = height;
+    if (birthDate) profileUpdate.birthDate = birthDate;
+    
+    Cloud.saveProfile(profileUpdate);
 
     this.showToast('Perfil salvo com sucesso! ✅');
   },
@@ -764,10 +762,13 @@ const UI = {
     DB.setSetting('socialEnabled', enabled);
     App._updateSocialNav(enabled);
     
-    // Update in cloud
-    var profile = Cloud._cachedProfile || {};
-    profile.socialEnabled = enabled;
-    await Cloud.saveProfile(profile);
+    // Make sure we have the full profile before updating
+    if (!Cloud._cachedProfile) {
+      await Cloud.loadProfile();
+    }
+    
+    // Only update the socialEnabled flag
+    await Cloud.saveProfile({ socialEnabled: enabled });
     
     if (enabled) {
       this.showToast('Social ativado! 💜');

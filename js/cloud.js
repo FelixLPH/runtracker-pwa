@@ -134,8 +134,11 @@ const Cloud = {
     var uid = this.getUID();
     if (!this._initialized || !this._db || !uid) return false;
     try {
-      await this._db.ref('users/' + uid + '/profile').set(profileData);
+      // Use update() instead of set() to prevent overwriting existing fields
+      await this._db.ref('users/' + uid + '/profile').update(profileData);
       await this._db.ref('users/' + uid + '/updatedAt').set(Date.now());
+      // Update local cache
+      this._cachedProfile = Object.assign({}, this._cachedProfile || {}, profileData);
       console.log('☁️ Profile saved');
       return true;
     } catch (e) {
