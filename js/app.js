@@ -347,6 +347,11 @@ const App = {
       statsLine = '<div class="profile-card-bio" style="font-size:0.78rem; opacity:0.85;">' + statsItems.join(' · ') + '</div>';
     }
 
+    var instaBadge = '';
+    if (p.instagram && p.showInstagram !== false) {
+      instaBadge = '<div><a href="https://instagram.com/' + p.instagram + '" target="_blank" rel="noopener" class="social-insta-badge" onclick="event.stopPropagation();">📸 @' + p.instagram + '</a></div>';
+    }
+
     var followBtn = '<button class="feed-card-follow" id="follow-btn-' + profile.id + '" onclick="event.stopPropagation(); App.followFromDiscover(\'' + profile.id + '\')">Seguir</button>';
 
     cardArea.innerHTML = '<div class="profile-card" id="current-profile-card">' +
@@ -356,7 +361,7 @@ const App = {
           '<div class="profile-card-name">' + p.name + '<span class="profile-card-age">' + ageStr + '</span></div>' +
           followBtn +
         '</div>' +
-        location + bio + goalTag + sports + interests + statsLine +
+        location + bio + goalTag + sports + interests + statsLine + instaBadge +
       '</div></div>';
     
     actions.style.display = 'flex';
@@ -414,7 +419,11 @@ const App = {
       : '<div class="match-photo-placeholder">🏃</div>';
     
     photosDiv.innerHTML = myPhoto + theirPhoto;
-    msgEl.textContent = 'Você e ' + theirProfile.name + ' se curtiram!';
+    var instaBtn = '';
+    if (theirProfile.instagram) {
+      instaBtn = '<div style="margin-top:14px;"><a href="https://instagram.com/' + theirProfile.instagram + '" target="_blank" rel="noopener" class="match-insta-btn">📸 Conversar no Instagram (@' + theirProfile.instagram + ')</a></div>';
+    }
+    msgEl.innerHTML = 'Você e ' + theirProfile.name + ' se curtiram!' + instaBtn;
     overlay.classList.add('active');
   },
 
@@ -448,10 +457,14 @@ const App = {
         var c = '#8B5CF6'; for (var k in sc) { if (p.relationshipGoal.indexOf(k) >= 0) { c = sc[k]; break; } }
         goal = '<div class="match-card-goal" style="border-left:3px solid ' + c + '; padding-left:6px;">' + p.relationshipGoal + '</div>';
       }
+      var instaLink = '';
+      if (p.instagram) {
+        instaLink = '<div style="margin-top:6px;"><a href="https://instagram.com/' + p.instagram + '" target="_blank" rel="noopener" class="social-insta-badge" onclick="event.stopPropagation();">📸 @' + p.instagram + '</a></div>';
+      }
       
       html += '<div class="match-card">' + photo +
         '<div class="match-card-info"><div class="match-card-name">' + p.name + '</div>' +
-        '<div class="match-card-date">Match em ' + date + '</div>' + goal +
+        '<div class="match-card-date">Match em ' + date + '</div>' + goal + instaLink +
         '</div></div>';
     }
     listEl.innerHTML = html;
@@ -769,6 +782,12 @@ const App = {
       d.showWeight = true;
       d.showHeight = true;
       d.showLocation = true;
+      
+      // Instagram
+      var rawInsta = (document.getElementById('onboard-instagram') ? document.getElementById('onboard-instagram').value : '').trim();
+      d.instagram = rawInsta.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').split('/')[0].split('?')[0].trim();
+      d.showInstagram = true;
+      if (d.instagram) DB.setSetting('instagram', d.instagram);
       
       // Collect interests
       var interests = [];

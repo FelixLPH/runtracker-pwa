@@ -890,8 +890,12 @@ const UI = {
       '<div class="input-group"><label for="edit-state">Estado</label>' +
       '<input type="text" id="edit-state" class="input-field" value="' + (p.state || '') + '" placeholder="SP" maxlength="2"></div></div>' +
       
+      '<div class="input-group"><label for="edit-instagram">📸 Instagram</label>' +
+      '<input type="text" id="edit-instagram" class="input-field" value="' + (p.instagram ? '@' + p.instagram : '') + '" placeholder="@seunome ou link do perfil" maxlength="60"></div>' +
+      
       '<label class="input-label">Privacidade — o que mostrar</label>' +
       '<div style="display:flex; flex-direction:column; gap:var(--space-sm); margin:var(--space-sm) 0 var(--space-lg);">' +
+        '<label style="display:flex; align-items:center; justify-content:space-between; font-size:0.85rem;"><span>Mostrar Instagram</span><label class="toggle-switch"><input type="checkbox" id="edit-showInstagram" ' + (p.showInstagram !== false ? 'checked' : '') + '><span class="toggle-slider"></span></label></label>' +
         '<label style="display:flex; align-items:center; justify-content:space-between; font-size:0.85rem;"><span>Mostrar peso</span><label class="toggle-switch"><input type="checkbox" id="edit-showWeight" ' + (p.showWeight !== false ? 'checked' : '') + '><span class="toggle-slider"></span></label></label>' +
         '<label style="display:flex; align-items:center; justify-content:space-between; font-size:0.85rem;"><span>Mostrar altura</span><label class="toggle-switch"><input type="checkbox" id="edit-showHeight" ' + (p.showHeight !== false ? 'checked' : '') + '><span class="toggle-slider"></span></label></label>' +
         '<label style="display:flex; align-items:center; justify-content:space-between; font-size:0.85rem;"><span>Mostrar localização</span><label class="toggle-switch"><input type="checkbox" id="edit-showLocation" ' + (p.showLocation !== false ? 'checked' : '') + '><span class="toggle-slider"></span></label></label>' +
@@ -1004,6 +1008,11 @@ const UI = {
     profile.bio = (document.getElementById('edit-bio').value || '').trim();
     profile.city = (document.getElementById('edit-city').value || '').trim();
     profile.state = (document.getElementById('edit-state').value || '').trim().toUpperCase();
+    
+    // Clean & save Instagram username
+    var rawInsta = (document.getElementById('edit-instagram').value || '').trim();
+    var cleanInsta = rawInsta.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/^@/, '').split('/')[0].split('?')[0].trim();
+    profile.instagram = cleanInsta;
     profile.socialEnabled = true;
     
     // Collect interests
@@ -1014,9 +1023,11 @@ const UI = {
     profile.interests = interests;
     
     // Privacy toggles
+    var si = document.getElementById('edit-showInstagram');
     var sw = document.getElementById('edit-showWeight');
     var sh = document.getElementById('edit-showHeight');
     var sl = document.getElementById('edit-showLocation');
+    if (si) profile.showInstagram = si.checked;
     if (sw) profile.showWeight = sw.checked;
     if (sh) profile.showHeight = sh.checked;
     if (sl) profile.showLocation = sl.checked;
@@ -1031,6 +1042,7 @@ const UI = {
     if (profile.bio) DB.setSetting('bio', profile.bio);
     if (profile.city) DB.setSetting('city', profile.city);
     if (profile.state) DB.setSetting('state', profile.state);
+    DB.setSetting('instagram', profile.instagram || '');
     DB.setSetting('socialEnabled', true);
     App._updateSocialNav(true);
 
