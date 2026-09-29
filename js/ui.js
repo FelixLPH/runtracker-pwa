@@ -850,17 +850,6 @@ const UI = {
       '<label class="input-label">O que curte?</label>' +
       '<div class="interests-grid" id="edit-interests">' + interestPills + '</div>' +
       
-      '<label class="input-label">Qual seu esporte? 🏅</label>' +
-      '<div class="interests-grid" id="edit-sports">' + sportPills + '</div>' +
-      
-      '<div class="input-row"><div class="input-group"><label for="edit-weekly-km">Km por semana</label>' +
-      '<input type="number" id="edit-weekly-km" class="input-field" value="' + (p.weeklyKm || '') + '" placeholder="20" min="0" max="500"></div>' +
-      '<div class="input-group"><label for="edit-pace">Pace médio</label>' +
-      '<input type="text" id="edit-pace" class="input-field" value="' + (p.avgPace || '') + '" placeholder="5:30"></div></div>' +
-      
-      '<label class="input-label">Quem é você na prova? 🏆</label>' +
-      makeOptions(raceStyleOptions, p.raceStyle, 'edit-race-style') +
-      
       '<div class="input-row"><div class="input-group"><label for="edit-city">Cidade</label>' +
       '<input type="text" id="edit-city" class="input-field" value="' + (p.city || '') + '" placeholder="São Paulo"></div>' +
       '<div class="input-group"><label for="edit-state">Estado</label>' +
@@ -929,13 +918,9 @@ const UI = {
     profile.gender = getSelected('edit-gender') || profile.gender;
     profile.preference = getSelected('edit-preference') || profile.preference;
     profile.relationshipGoal = getSelected('edit-goal') || profile.relationshipGoal;
-    profile.raceStyle = getSelected('edit-race-style') || profile.raceStyle;
-    
     profile.bio = (document.getElementById('edit-bio').value || '').trim();
     profile.city = (document.getElementById('edit-city').value || '').trim();
     profile.state = (document.getElementById('edit-state').value || '').trim().toUpperCase();
-    profile.weeklyKm = parseInt(document.getElementById('edit-weekly-km').value) || 0;
-    profile.avgPace = (document.getElementById('edit-pace').value || '').trim();
     
     // Collect interests
     var interests = [];
@@ -943,13 +928,6 @@ const UI = {
       interests.push(el.textContent.trim());
     });
     profile.interests = interests;
-
-    // Collect sports
-    var sports = [];
-    document.querySelectorAll('#edit-sports .interest-pill.selected').forEach(function(el) {
-      sports.push(el.textContent.trim());
-    });
-    profile.sports = sports;
     
     // Privacy toggles
     profile.showWeight = document.getElementById('edit-showWeight').checked;

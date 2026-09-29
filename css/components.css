@@ -560,6 +560,36 @@
   color: var(--danger);
 }
 
+.record-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: var(--space-xs);
+}
+
+.btn-voice-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-xl);
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-voice-toggle.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(139, 92, 246, 0.15);
+}
+
 
 /* ================================================
    14. MAP MARKERS

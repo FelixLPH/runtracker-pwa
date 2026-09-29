@@ -13,6 +13,9 @@ const App = {
   isRecording: false,
   isPaused: false,
   selectedSport: 'run',
+  voiceFeedbackEnabled: true,
+  _lastSpokenKm: 0,
+  _lastKmTime: 0,
 
   // ========== INITIALIZATION ==========
   async init() {
@@ -741,15 +744,6 @@ const App = {
       });
       d.interests = interests;
       
-      // Collect sports
-      var sports = [];
-      document.querySelectorAll('#sports-grid .interest-pill.selected').forEach(function(el) {
-        sports.push(el.textContent.trim());
-      });
-      d.sports = sports;
-      d.weeklyKm = parseInt(document.getElementById('onboard-weekly-km').value) || 0;
-      d.avgPace = (document.getElementById('onboard-pace').value || '').trim();
-      
       // Collect photos (filter nulls)
       d.photos = this._onboardPhotos.filter(function(p) { return p != null; });
       
@@ -815,12 +809,17 @@ const App = {
         var sport = Stats.getSportConfig(App.selectedSport);
         var paceLabel = document.getElementById('record-pace-label');
         if (paceLabel) paceLabel.textContent = sport.paceLabel;
+
+        // Restore voice feedback setting
+        this.voiceFeedbackEnabled = DB.getSetting('voiceFeedback', true);
+        this._updateVoiceButtonUI();
       }, 150);
     } else {
       // Already recording — just refresh the map size
       if (this.recordMap) {
         this.recordMap.invalidateSize();
       }
+      this._updateVoiceButtonUI();
     }
   },
 
@@ -834,11 +833,16 @@ const App = {
         this.recordMap.addPoint(point.lat, point.lng);
       }
 
+      const elapsed = this.timer.getElapsedSeconds();
+
       // Update live stats
-      UI.updateRecordStats(totalDistance, this.timer.getElapsedSeconds());
+      UI.updateRecordStats(totalDistance, elapsed);
       
       // Save state on every GPS update for maximum data preservation
-      if (this.isRecording) this._saveRecordingState();
+      if (this.isRecording) {
+        this._saveRecordingState();
+        this._checkVoiceLapAnnouncement(totalDistance, elapsed);
+      }
     });
 
     // GPS errors
@@ -850,6 +854,83 @@ const App = {
     this.gps.onStatusChange((status) => {
       UI.showGPSStatus(status);
     });
+  },
+
+  // ========== VOICE FEEDBACK (Speech Synthesis) ==========
+  toggleVoiceFeedback() {
+    this.voiceFeedbackEnabled = !this.voiceFeedbackEnabled;
+    DB.setSetting('voiceFeedback', this.voiceFeedbackEnabled);
+    this._updateVoiceButtonUI();
+    if (this.voiceFeedbackEnabled) {
+      UI.showToast('Feedback por voz ativado 🔊');
+      this.speak('Áudio de treino ativado');
+    } else {
+      UI.showToast('Feedback por voz desativado 🔇');
+    }
+  },
+
+  _updateVoiceButtonUI() {
+    var btn = document.getElementById('btn-voice-toggle');
+    var icon = document.getElementById('voice-toggle-icon');
+    var label = document.getElementById('voice-toggle-label');
+    if (!btn) return;
+    if (this.voiceFeedbackEnabled) {
+      btn.classList.add('active');
+      if (icon) icon.textContent = '🔊';
+      if (label) label.textContent = 'Voz Ativa';
+    } else {
+      btn.classList.remove('active');
+      if (icon) icon.textContent = '🔇';
+      if (label) label.textContent = 'Voz Mudo';
+    }
+  },
+
+  speak(text) {
+    if (!this.voiceFeedbackEnabled) return;
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      var utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'pt-BR';
+      utterance.rate = 1.05;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    } catch(e) {
+      console.warn('Speech synthesis error:', e);
+    }
+  },
+
+  _checkVoiceLapAnnouncement(distanceKm, elapsedSeconds) {
+    if (!this.voiceFeedbackEnabled) return;
+    var currentKm = Math.floor(distanceKm);
+    if (currentKm > this._lastSpokenKm && currentKm >= 1) {
+      this._lastSpokenKm = currentKm;
+      
+      // Calculate lap time (time taken for the last 1 km)
+      var lapSeconds = elapsedSeconds - (this._lastKmTime || 0);
+      this._lastKmTime = elapsedSeconds;
+      
+      // Calculate overall pace
+      var avgPaceSeconds = distanceKm > 0 ? (elapsedSeconds / distanceKm) : 0;
+      
+      var lapMins = Math.floor(lapSeconds / 60);
+      var lapSecs = Math.round(lapSeconds % 60);
+      
+      var avgPaceMins = Math.floor(avgPaceSeconds / 60);
+      var avgPaceSecs = Math.round(avgPaceSeconds % 60);
+      
+      var totalMins = Math.floor(elapsedSeconds / 60);
+      var totalSecs = Math.round(elapsedSeconds % 60);
+      
+      var phrase = 'Quilômetro ' + currentKm + ' concluído. ';
+      phrase += 'Tempo total: ' + totalMins + ' minutos' + (totalSecs > 0 ? ' e ' + totalSecs + ' segundos' : '') + '. ';
+      phrase += 'Ritmo médio: ' + avgPaceMins + ' e ' + (avgPaceSecs < 10 ? '0' : '') + avgPaceSecs + ' por quilômetro. ';
+      if (lapSeconds > 0 && lapSeconds < 3600) {
+        phrase += 'Último quilômetro: ' + lapMins + ' e ' + (lapSecs < 10 ? '0' : '') + lapSecs + '.';
+      }
+      
+      this.speak(phrase);
+    }
   },
 
   // ========== RUN CONTROLS ==========
@@ -1055,6 +1136,8 @@ const App = {
     this.isPaused = false;
     this._recordStartTime = Date.now();
     this._lastSavedKm = 0;
+    this._lastSpokenKm = 0;
+    this._lastKmTime = 0;
 
     // Hide sport selector during recording
     var selector = document.getElementById('sport-selector');
@@ -1095,6 +1178,7 @@ const App = {
     UI.setRecordingState('recording');
     var sportCfg = Stats.getSportConfig(this.selectedSport);
     UI.showToast(sportCfg.label + ' iniciada! ' + sportCfg.icon);
+    this.speak(sportCfg.label + ' iniciada!');
   },
 
   pauseRun() {
@@ -1102,6 +1186,7 @@ const App = {
     this.timer.pause();
     this.gps.pause();
     UI.setRecordingState('paused');
+    this.speak('Treino pausado');
   },
 
   resumeRun() {
@@ -1109,6 +1194,7 @@ const App = {
     this.timer.resume();
     this.gps.resume();
     UI.setRecordingState('recording');
+    this.speak('Treino retomado');
   },
 
   async finishRun() {
@@ -1119,6 +1205,7 @@ const App = {
     this.isPaused = false;
     this.releaseWakeLock();
     this._clearRecordingState();
+    this.speak('Treino finalizado! Parabéns!');
 
     const points = this.gps.getPoints();
     const distance = this.gps.getDistance();
