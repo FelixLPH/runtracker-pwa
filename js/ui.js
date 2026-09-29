@@ -1063,6 +1063,7 @@ const UI = {
     if (profileStep) profileStep.style.display = 'none';
     App._emailMode = 'login';
     App.navigateTo('onboarding');
+    App._prefillSavedAuth();
     this.showToast('Você saiu da conta');
   },
 

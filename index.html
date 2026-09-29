@@ -72,15 +72,17 @@
                   </svg>
                 </button>
               </div>
+            <div class="auth-options-row">
+              <label class="remember-label">
+                <input type="checkbox" id="auth-remember" checked>
+                <span>Manter conectado</span>
+              </label>
+              <span class="auth-forgot-link" id="auth-forgot" onclick="App.resetPassword()">Esqueci minha senha</span>
             </div>
 
             <button type="button" class="btn-primary btn-lg" id="btn-email-submit" onclick="App.submitEmail()">
               🔓 Entrar
             </button>
-
-            <p class="auth-forgot" id="auth-forgot">
-              <span class="accent" onclick="App.resetPassword()">Esqueci minha senha</span>
-            </p>
 
             <p class="auth-switch" id="email-toggle">
               Não tem conta? <span class="accent" onclick="App.toggleEmailMode()">Criar conta</span>

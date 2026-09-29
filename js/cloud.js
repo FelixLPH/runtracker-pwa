@@ -31,8 +31,14 @@ const Cloud = {
       }
       this._db = firebase.database();
       this._auth = firebase.auth();
+      // Ensure persistence is LOCAL by default so login is never lost
+      try {
+        this._auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      } catch (pe) {
+        console.warn('Set initial persistence error:', pe);
+      }
       this._initialized = true;
-      console.log('✅ Firebase initialized');
+      console.log('✅ Firebase initialized with LOCAL persistence');
     } catch (e) {
       console.error('Firebase init error:', e);
     }
@@ -70,15 +76,23 @@ const Cloud = {
     }
   },
 
-  async signupWithEmail(email, password) {
+  async signupWithEmail(email, password, rememberMe = true) {
     if (!this._initialized || !this._auth) throw new Error('Firebase not initialized');
+    try {
+      var p = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+      await this._auth.setPersistence(p);
+    } catch(e) {}
     var result = await this._auth.createUserWithEmailAndPassword(email, password);
     this._user = result.user;
     return this._user;
   },
 
-  async loginWithEmail(email, password) {
+  async loginWithEmail(email, password, rememberMe = true) {
     if (!this._initialized || !this._auth) throw new Error('Firebase not initialized');
+    try {
+      var p = rememberMe ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION;
+      await this._auth.setPersistence(p);
+    } catch(e) {}
     var result = await this._auth.signInWithEmailAndPassword(email, password);
     this._user = result.user;
     return this._user;

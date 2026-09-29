@@ -75,6 +75,7 @@ const App = {
     } else {
       // No auth — show login screen
       this.navigateTo('onboarding');
+      this._prefillSavedAuth();
     }
   },
 
@@ -531,9 +532,26 @@ const App = {
     document.getElementById('auth-forgot').style.display = isLogin ? 'block' : 'none';
   },
 
+  _prefillSavedAuth() {
+    try {
+      var savedEmail = localStorage.getItem('pacemeet_saved_email');
+      var rememberMe = localStorage.getItem('pacemeet_remember_me') !== 'false';
+      var emailInput = document.getElementById('auth-email');
+      var rememberInput = document.getElementById('auth-remember');
+      if (emailInput && savedEmail) {
+        emailInput.value = savedEmail;
+      }
+      if (rememberInput) {
+        rememberInput.checked = rememberMe;
+      }
+    } catch(e) {}
+  },
+
   async submitEmail() {
     var email = (document.getElementById('auth-email').value || '').trim();
     var password = document.getElementById('auth-password').value || '';
+    var rememberInput = document.getElementById('auth-remember');
+    var rememberMe = rememberInput ? rememberInput.checked : true;
     var errorEl = document.getElementById('email-error');
     errorEl.style.display = 'none';
 
@@ -547,10 +565,22 @@ const App = {
     try {
       var user;
       if (this._emailMode === 'signup') {
-        user = await Cloud.signupWithEmail(email, password);
+        user = await Cloud.signupWithEmail(email, password, rememberMe);
       } else {
-        user = await Cloud.loginWithEmail(email, password);
+        user = await Cloud.loginWithEmail(email, password, rememberMe);
       }
+
+      // Save credentials for fast access
+      try {
+        if (rememberMe) {
+          localStorage.setItem('pacemeet_remember_me', 'true');
+          localStorage.setItem('pacemeet_saved_email', email);
+        } else {
+          localStorage.setItem('pacemeet_remember_me', 'false');
+          localStorage.removeItem('pacemeet_saved_email');
+        }
+      } catch(e) {}
+
       // Handle post-login (same as Google redirect)
       await this._handlePostLogin(user);
     } catch (e) {
