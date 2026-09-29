@@ -234,6 +234,8 @@ const Cloud = {
       if (profile.birthDate) DB.setSetting('birthDate', profile.birthDate);
       if (profile.weeklyGoal) DB.setSetting('weeklyGoal', profile.weeklyGoal);
       if (profile.socialEnabled !== undefined) DB.setSetting('socialEnabled', profile.socialEnabled === true);
+      var av = profile.avatar || (profile.photos && profile.photos[0]) || '';
+      if (av) DB.setSetting('avatar', av);
       DB.setSetting('onboarded', true);
 
       // Load activities from cloud

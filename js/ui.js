@@ -582,6 +582,7 @@ const UI = {
 
     // Get initial for avatar
     const initial = name ? name.charAt(0).toUpperCase() : '?';
+    const avatar = DB.getSetting('avatar', '') || (Cloud._cachedProfile && (Cloud._cachedProfile.avatar || (Cloud._cachedProfile.photos && Cloud._cachedProfile.photos[0]))) || '';
 
     const isSocial = DB.getSetting('socialEnabled', false) || (Cloud._cachedProfile && Cloud._cachedProfile.socialEnabled === true);
     const socialData = Cloud._cachedProfile || {
@@ -601,8 +602,15 @@ const UI = {
       </div>
 
       <div class="profile-avatar-section">
-        <div class="profile-avatar">${initial}</div>
+        <div class="profile-avatar-wrapper" onclick="UI.pickAvatarPhoto()" title="Toque para colocar ou trocar sua foto">
+          <div class="profile-avatar">
+            ${avatar ? `<img src="${avatar}" alt="${name}" class="profile-avatar-img">` : initial}
+          </div>
+          <div class="avatar-edit-badge" title="Trocar foto">📷</div>
+        </div>
+        <input type="file" id="profile-avatar-input" accept="image/*" style="display:none" onchange="UI.handleAvatarUpload(event)">
         <h2 class="profile-display-name">${name || 'Corredor'}</h2>
+        ${avatar ? `<button type="button" class="btn-text-link" onclick="UI.removeAvatarPhoto()" style="font-size:0.75rem; color:var(--text-muted); margin-top:-4px; cursor:pointer; background:none; border:none;">Remover foto</button>` : `<span class="text-muted" style="font-size:0.75rem; cursor:pointer;" onclick="UI.pickAvatarPhoto()">📷 Toque para adicionar foto</span>`}
         ${ageDisplay ? `<p class="text-muted">${ageDisplay}${height ? ` · ${height} cm` : ''}${weight ? ` · ${weight} kg` : ''}</p>` : ''}
         <div class="follow-counts" id="profile-follow-counts">
           <div class="follow-count-item">
@@ -897,6 +905,54 @@ const UI = {
     var group = document.getElementById(groupId);
     group.querySelectorAll('.option-item').forEach(function(item) { item.classList.remove('selected'); });
     el.classList.add('selected');
+  },
+
+  pickAvatarPhoto() {
+    var input = document.getElementById('profile-avatar-input');
+    if (input) input.click();
+  },
+
+  async handleAvatarUpload(event) {
+    var file = event.target.files[0];
+    if (!file) return;
+    this.showToast('Processando foto de perfil...');
+    try {
+      var base64 = await Social.compressAndUploadPhoto(file);
+      
+      // Save locally
+      DB.setSetting('avatar', base64);
+      
+      // Save to cloud & update photos array
+      var profile = Cloud._cachedProfile || {};
+      profile.avatar = base64;
+      if (!profile.photos) profile.photos = [];
+      if (profile.photos.length === 0) {
+        profile.photos.push(base64);
+      } else {
+        profile.photos[0] = base64;
+      }
+      
+      await Cloud.saveProfile({ avatar: base64, photos: profile.photos });
+      this.showToast('Foto de perfil atualizada! 📸');
+      this.renderProfile();
+    } catch(e) {
+      console.error('Avatar error:', e);
+      this.showToast('Erro ao atualizar foto');
+    }
+    event.target.value = '';
+  },
+
+  async removeAvatarPhoto() {
+    if (!confirm('Deseja remover sua foto de perfil?')) return;
+    DB.setSetting('avatar', '');
+    var profile = Cloud._cachedProfile || {};
+    profile.avatar = '';
+    if (profile.photos && profile.photos.length > 0) {
+      profile.photos.splice(0, 1);
+    }
+    await Cloud.saveProfile({ avatar: '', photos: profile.photos || [] });
+    this.showToast('Foto de perfil removida');
+    this.renderProfile();
   },
 
   pickSocialPhoto(index) {
