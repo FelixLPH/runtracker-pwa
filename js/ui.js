@@ -583,6 +583,18 @@ const UI = {
     // Get initial for avatar
     const initial = name ? name.charAt(0).toUpperCase() : '?';
 
+    const isSocial = DB.getSetting('socialEnabled', false) || (Cloud._cachedProfile && Cloud._cachedProfile.socialEnabled === true);
+    const socialData = Cloud._cachedProfile || {
+      gender: DB.getSetting('gender', ''),
+      preference: DB.getSetting('preference', 'Tanto faz'),
+      relationshipGoal: DB.getSetting('relationshipGoal', ''),
+      bio: DB.getSetting('bio', ''),
+      city: DB.getSetting('city', ''),
+      state: DB.getSetting('state', ''),
+      interests: [],
+      photos: []
+    };
+
     container.innerHTML = `
       <div class="page-header">
         <h1>Perfil</h1>
@@ -604,7 +616,26 @@ const UI = {
         </div>
       </div>
 
+      <!-- PACEMEET Social Section -->
+      <div class="profile-section glass-card" style="border: 1px solid rgba(139, 92, 246, 0.35);">
+        <h3 class="card-title">💜 PACEMEET Social & Conexões</h3>
+        <p class="text-muted" style="font-size:0.82rem; margin-bottom:var(--space-md);">Ative para descobrir corredores, encontrar parceiros de treino e dar match.</p>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding-top:var(--space-sm); border-top:1px solid rgba(255,255,255,0.06);">
+          <span style="font-size:0.95rem; font-weight:600;">Modo Social Ativo</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="social-toggle" ${isSocial ? 'checked' : ''} onchange="UI.toggleSocial(this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div id="social-edit-wrapper" style="display: ${isSocial ? 'block' : 'none'};">
+        ${this._renderSocialEditForm(socialData)}
+      </div>
+
+      <!-- Dados Físicos e Metas -->
       <div class="profile-form glass-card">
+        <h3 class="card-title">🏃 Dados do Corredor</h3>
         <div class="input-group">
           <label for="profile-name">Nome</label>
           <input type="text" id="profile-name" class="input-field"
@@ -633,7 +664,7 @@ const UI = {
                  value="${DB.getSetting('weeklyGoal', 10)}" placeholder="10" min="1" max="500" step="1">
         </div>
         <button class="btn-primary" onclick="UI.saveProfile()">
-          💾 Salvar perfil
+          💾 Salvar dados do corredor
         </button>
       </div>
 
@@ -651,23 +682,10 @@ const UI = {
         <div style="text-align:center; padding: var(--space-md) 0;">
           <div style="font-size:0.95rem; color:var(--text-secondary); background:var(--bg-secondary); padding:var(--space-md); border-radius:var(--radius-sm); border:1px solid var(--bg-tertiary);">
             <span style="color:var(--success);">●</span> ${Cloud.getCurrentUser() ? Cloud.getCurrentUser().email : 'Google'}</div>
-          <p class="text-muted" style="margin-top:var(--space-sm); font-size:0.75rem;">Seus dados estão seguros na nuvem via Google</p>
+          <p class="text-muted" style="margin-top:var(--space-sm); font-size:0.75rem;">Seus dados estão sincronizados na nuvem</p>
         </div>
       </div>
 
-      <div class="profile-section glass-card">
-        <h3 class="card-title">💜 PACEMEET Social</h3>
-        <p class="text-muted" style="font-size:0.8rem; margin-bottom:var(--space-md);">Ative para descobrir corredores, dar match e se conectar.</p>
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-          <span style="font-size:0.9rem;">Perfil social ativo</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="social-toggle" ${Cloud._cachedProfile && Cloud._cachedProfile.socialEnabled ? 'checked' : ''} onchange="UI.toggleSocial(this.checked)">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-      </div>
-
-      ${(Cloud._cachedProfile && Cloud._cachedProfile.socialEnabled) ? this._renderSocialEditForm(Cloud._cachedProfile) : ''}
       <div class="profile-divider"></div>
 
       <button class="btn-logout" onclick="UI.logout()">
@@ -762,21 +780,30 @@ const UI = {
     DB.setSetting('socialEnabled', enabled);
     App._updateSocialNav(enabled);
     
-    // Make sure we have the full profile before updating
-    if (!Cloud._cachedProfile) {
-      await Cloud.loadProfile();
+    // Toggle visual state
+    var toggle = document.getElementById('social-toggle');
+    if (toggle) toggle.checked = enabled;
+
+    // Show/hide social configuration form immediately below
+    var wrapper = document.getElementById('social-edit-wrapper');
+    if (wrapper) {
+      wrapper.style.display = enabled ? 'block' : 'none';
+      if (enabled) {
+        wrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
     
-    // Only update the socialEnabled flag
-    await Cloud.saveProfile({ socialEnabled: enabled });
-    
     if (enabled) {
-      this.showToast('Social ativado! 💜');
+      this.showToast('Social ativado! 💜 Configure suas preferências abaixo');
     } else {
       this.showToast('Social desativado');
     }
-    // Re-render profile to show/hide edit form
-    this.renderProfile();
+    
+    // Update in cloud
+    if (Cloud._cachedProfile) {
+      Cloud._cachedProfile.socialEnabled = enabled;
+    }
+    await Cloud.saveProfile({ socialEnabled: enabled });
   },
 
   _socialPhotoSlot: 0,
@@ -915,12 +942,13 @@ const UI = {
       return el ? el.textContent.trim() : '';
     };
     
-    profile.gender = getSelected('edit-gender') || profile.gender;
-    profile.preference = getSelected('edit-preference') || profile.preference;
-    profile.relationshipGoal = getSelected('edit-goal') || profile.relationshipGoal;
+    profile.gender = getSelected('edit-gender') || profile.gender || '';
+    profile.preference = getSelected('edit-preference') || profile.preference || 'Tanto faz';
+    profile.relationshipGoal = getSelected('edit-goal') || profile.relationshipGoal || '';
     profile.bio = (document.getElementById('edit-bio').value || '').trim();
     profile.city = (document.getElementById('edit-city').value || '').trim();
     profile.state = (document.getElementById('edit-state').value || '').trim().toUpperCase();
+    profile.socialEnabled = true;
     
     // Collect interests
     var interests = [];
@@ -930,15 +958,28 @@ const UI = {
     profile.interests = interests;
     
     // Privacy toggles
-    profile.showWeight = document.getElementById('edit-showWeight').checked;
-    profile.showHeight = document.getElementById('edit-showHeight').checked;
-    profile.showLocation = document.getElementById('edit-showLocation').checked;
+    var sw = document.getElementById('edit-showWeight');
+    var sh = document.getElementById('edit-showHeight');
+    var sl = document.getElementById('edit-showLocation');
+    if (sw) profile.showWeight = sw.checked;
+    if (sh) profile.showHeight = sh.checked;
+    if (sl) profile.showLocation = sl.checked;
     
     // Remove old smoking field if exists
     delete profile.smoking;
     
+    // Save locally
+    if (profile.gender) DB.setSetting('gender', profile.gender);
+    if (profile.preference) DB.setSetting('preference', profile.preference);
+    if (profile.relationshipGoal) DB.setSetting('relationshipGoal', profile.relationshipGoal);
+    if (profile.bio) DB.setSetting('bio', profile.bio);
+    if (profile.city) DB.setSetting('city', profile.city);
+    if (profile.state) DB.setSetting('state', profile.state);
+    DB.setSetting('socialEnabled', true);
+    App._updateSocialNav(true);
+
     await Cloud.saveProfile(profile);
-    this.showToast('Perfil social salvo! 💜');
+    this.showToast('Perfil social salvo com sucesso! 💜');
   },
 
 

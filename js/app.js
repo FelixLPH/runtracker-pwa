@@ -132,6 +132,9 @@ const App = {
         break;
       case 'profile':
         UI.renderProfile();
+        if (!Cloud._cachedProfile) {
+          Cloud.loadProfile().then(() => UI.renderProfile());
+        }
         break;
       case 'activity':
         UI.renderActivity(data);

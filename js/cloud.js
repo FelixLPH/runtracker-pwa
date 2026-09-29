@@ -233,6 +233,7 @@ const Cloud = {
       if (profile.height) DB.setSetting('height', profile.height);
       if (profile.birthDate) DB.setSetting('birthDate', profile.birthDate);
       if (profile.weeklyGoal) DB.setSetting('weeklyGoal', profile.weeklyGoal);
+      if (profile.socialEnabled !== undefined) DB.setSetting('socialEnabled', profile.socialEnabled === true);
       DB.setSetting('onboarded', true);
 
       // Load activities from cloud
