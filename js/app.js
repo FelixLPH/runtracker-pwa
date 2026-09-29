@@ -50,27 +50,47 @@ const App = {
     var user = await Cloud.waitForAuth();
 
     if (user) {
-      console.log('✅ User logged in:', user.displayName);
+      console.log('✅ User logged in:', user.displayName || user.email);
 
-      // Check if user has a profile in the cloud
+      // Check if user has a profile in the cloud OR locally
       var profile = await Cloud.loadProfile();
-      if (profile && profile.name) {
-        // Existing user — sync and go home
-        await Cloud.syncFromCloud();
+      var localName = DB.getSetting('name', '');
+      var isOnboarded = DB.getSetting('onboarded', false);
+
+      if ((profile && profile.name) || localName || isOnboarded) {
+        if (!profile || !profile.name) {
+          var fallbackName = localName || user.displayName || (user.email ? user.email.split('@')[0] : 'Corredor');
+          var localData = {
+            name: fallbackName,
+            weight: DB.getSetting('weight', 0),
+            height: DB.getSetting('height', 0),
+            birthDate: DB.getSetting('birthDate', ''),
+            weeklyGoal: DB.getSetting('weeklyGoal', 10),
+            socialEnabled: DB.getSetting('socialEnabled', false),
+            instagram: DB.getSetting('instagram', ''),
+            avatar: DB.getSetting('avatar', '')
+          };
+          await Cloud.saveProfile(localData);
+          profile = localData;
+        } else {
+          await Cloud.syncFromCloud();
+        }
+        
+        DB.setSetting('onboarded', true);
         this._updateSocialNav(profile.socialEnabled === true);
         this.navigateTo('home');
-        UI.showToast('Bem-vindo, ' + profile.name + '! 🎉');
+        UI.showToast('Bem-vindo, ' + (profile.name || 'Corredor') + '! 🎉');
         
         // Check if there's a recording that was interrupted
         await this.checkInterruptedRecording();
       } else {
-        // New user — show profile completion form
+        // Brand new user — show profile completion form
         this.navigateTo('onboarding');
         document.getElementById('onboarding-step-login').style.display = 'none';
         document.getElementById('onboarding-step-profile').style.display = 'block';
-        // Pre-fill name from Google account
         var nameInput = document.getElementById('onboard-name');
         if (user.displayName) nameInput.value = user.displayName;
+        else if (user.email) nameInput.value = user.email.split('@')[0];
       }
     } else {
       // No auth — show login screen
@@ -623,20 +643,44 @@ const App = {
 
   async _handlePostLogin(user) {
     var profile = await Cloud.loadProfile();
-    if (profile && profile.name) {
-      await Cloud.syncFromCloud();
+    var localName = DB.getSetting('name', '');
+    var isOnboarded = DB.getSetting('onboarded', false);
+
+    if ((profile && profile.name) || localName || isOnboarded) {
+      if (!profile || !profile.name) {
+        var fallbackName = localName || user.displayName || (user.email ? user.email.split('@')[0] : 'Corredor');
+        var localData = {
+          name: fallbackName,
+          weight: DB.getSetting('weight', 0),
+          height: DB.getSetting('height', 0),
+          birthDate: DB.getSetting('birthDate', ''),
+          weeklyGoal: DB.getSetting('weeklyGoal', 10),
+          socialEnabled: DB.getSetting('socialEnabled', false),
+          instagram: DB.getSetting('instagram', ''),
+          avatar: DB.getSetting('avatar', '')
+        };
+        await Cloud.saveProfile(localData);
+        profile = localData;
+      } else {
+        await Cloud.syncFromCloud();
+      }
+      
+      DB.setSetting('onboarded', true);
       this._updateSocialNav(profile.socialEnabled === true);
       this.navigateTo('home');
-      UI.showToast('Bem-vindo, ' + profile.name + '! 🎉');
+      UI.showToast('Bem-vindo, ' + (profile.name || 'Corredor') + '! 🎉');
     } else {
       document.getElementById('onboarding-step-login').style.display = 'none';
       document.getElementById('onboarding-step-profile').style.display = 'block';
       var nameInput = document.getElementById('onboard-name');
-      if (user.displayName) nameInput.value = user.displayName;
-      if (user.email) {
-        // Pre-fill name from email if no display name
-        if (!user.displayName) nameInput.value = user.email.split('@')[0];
-      }
+      var weightInput = document.getElementById('onboard-weight');
+      var heightInput = document.getElementById('onboard-height');
+      var birthInput = document.getElementById('onboard-birth');
+      
+      if (nameInput) nameInput.value = user.displayName || (user.email ? user.email.split('@')[0] : '');
+      if (weightInput && DB.getSetting('weight', 0) > 0) weightInput.value = DB.getSetting('weight');
+      if (heightInput && DB.getSetting('height', 0) > 0) heightInput.value = DB.getSetting('height');
+      if (birthInput && DB.getSetting('birthDate', '')) birthInput.value = DB.getSetting('birthDate');
     }
   },
 
