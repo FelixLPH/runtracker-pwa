@@ -18,7 +18,10 @@ const App = {
   _lastKmTime: 0,
 
   // ========== INITIALIZATION ==========
+  _initialized: false,
   async init() {
+    if (this._initialized) return;
+    this._initialized = true;
     try {
       await DB.init();
     } catch (e) {
@@ -131,7 +134,13 @@ const App = {
 
     // Show target page
     const target = document.getElementById(`page-${pageName}`);
-    if (target) target.classList.add('active');
+    if (target) {
+      target.classList.add('active');
+    } else {
+      const home = document.getElementById('page-home');
+      if (home) home.classList.add('active');
+      pageName = 'home';
+    }
 
     // Update nav active state
     document.querySelectorAll('.nav-item').forEach(btn => {
@@ -184,7 +193,11 @@ const App = {
   _homeTab: 'feed',
 
   async initHomePage() {
-    this.switchHomeTab(this._homeTab);
+    try {
+      this.switchHomeTab(this._homeTab);
+    } catch (e) {
+      console.warn('initHomePage error:', e);
+    }
   },
 
   switchHomeTab(tab) {

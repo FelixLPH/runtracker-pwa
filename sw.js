@@ -3,7 +3,7 @@
 // Cache-first strategy for app shell, network-first for data
 // ============================================================
 
-const CACHE_NAME = 'pacemeet-v19';
+const CACHE_NAME = 'pacemeet-v20';
 const STATIC_ASSETS = [
   './',
   './index.html',

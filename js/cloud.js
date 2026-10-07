@@ -134,7 +134,7 @@ const Cloud = {
           resolved = true;
           resolve(Cloud._auth ? Cloud._auth.currentUser : null);
         }
-      }, 2500);
+      }, 5000);
 
       // First check redirect result
       Cloud._auth.getRedirectResult().then(function(result) {
