@@ -123,10 +123,24 @@ const Cloud = {
   // Wait for auth state to resolve on load
   waitForAuth() {
     if (!this._auth) return Promise.resolve(null);
+    if (this._auth.currentUser) {
+      this._user = this._auth.currentUser;
+      return Promise.resolve(this._user);
+    }
     return new Promise(function(resolve) {
+      var resolved = false;
+      var timer = setTimeout(function() {
+        if (!resolved) {
+          resolved = true;
+          resolve(Cloud._auth ? Cloud._auth.currentUser : null);
+        }
+      }, 2500);
+
       // First check redirect result
       Cloud._auth.getRedirectResult().then(function(result) {
-        if (result && result.user) {
+        if (result && result.user && !resolved) {
+          resolved = true;
+          clearTimeout(timer);
           Cloud._user = result.user;
           resolve(result.user);
         }
@@ -137,8 +151,12 @@ const Cloud = {
       // Also listen for auth state changes
       var unsubscribe = Cloud._auth.onAuthStateChanged(function(user) {
         unsubscribe();
-        Cloud._user = user;
-        resolve(user);
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          Cloud._user = user;
+          resolve(user);
+        }
       });
     });
   },

@@ -46,7 +46,16 @@ const App = {
       console.error('❌ Setup failed:', e);
     }
 
-    // Check Firebase Auth state (including redirect result)
+    // Instant Render: show home if already onboarded, else show onboarding
+    var wasOnboarded = DB.getSetting('onboarded', false);
+    if (wasOnboarded) {
+      this.navigateTo('home');
+    } else {
+      this.navigateTo('onboarding');
+      this._prefillSavedAuth();
+    }
+
+    // Check Firebase Auth state (safely with timeout)
     var user = await Cloud.waitForAuth();
 
     if (user) {
@@ -55,7 +64,7 @@ const App = {
       // Check if user has a profile in the cloud OR locally
       var profile = await Cloud.loadProfile();
       var localName = DB.getSetting('name', '');
-      var isOnboarded = DB.getSetting('onboarded', false);
+      var isOnboarded = wasOnboarded || DB.getSetting('onboarded', false);
 
       if ((profile && profile.name) || localName || isOnboarded) {
         if (!profile || !profile.name) {
@@ -1426,5 +1435,9 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-// Initialize app when DOM is ready
-document.addEventListener('DOMContentLoaded', () => App.init());
+// Initialize app safely (even if DOM is already loaded)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => App.init());
+} else {
+  App.init();
+}
