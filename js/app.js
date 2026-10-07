@@ -170,6 +170,11 @@ const App = {
         UI.renderActivity(data);
         break;
       case 'onboarding':
+        var lStep = document.getElementById('onboarding-step-login');
+        var pStep = document.getElementById('onboarding-step-profile');
+        if (pStep && pStep.style.display !== 'block' && lStep) {
+          lStep.style.display = 'block';
+        }
         break;
     }
   },
@@ -576,6 +581,8 @@ const App = {
 
   _prefillSavedAuth() {
     try {
+      var loginStep = document.getElementById('onboarding-step-login');
+      if (loginStep) loginStep.style.display = 'block';
       var savedEmail = localStorage.getItem('pacemeet_saved_email');
       var rememberMe = localStorage.getItem('pacemeet_remember_me') !== 'false';
       var emailInput = document.getElementById('auth-email');
